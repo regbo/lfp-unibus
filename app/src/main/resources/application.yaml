@@ -1,0 +1,11 @@
+server:
+  port: 8888
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.reactive.handler.SimpleUrlHandlerMapping: TRACE
+kafka:
+  bootstrap:
+    servers: kafka.lfpconnect.io:443
+  security:
+    protocol: SSL
