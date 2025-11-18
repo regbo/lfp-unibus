@@ -6,16 +6,18 @@ plugins {
 
 repositories { mavenCentral() }
 
-dependencies {
-  testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-  testImplementation(libs.junit.jupiter.engine)
-  testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-  implementation(platform(libs.spring.boot.dependencies))
-  implementation("org.springframework.boot:spring-boot-starter-webflux")
-  implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+repositories { mavenCentral() }
 
-  implementation(libs.reactor.kafka)
-  implementation(libs.kafka.clients)
+dependencies {
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation(libs.junit.jupiter.engine)
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    implementation(platform(libs.spring.boot.dependencies))
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+
+    implementation(libs.reactor.kafka)
+    implementation(libs.kafka.clients)
 }
 
 val jdkVersion = properties["jdk.version"] as String

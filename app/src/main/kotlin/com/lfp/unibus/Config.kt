@@ -2,6 +2,7 @@ package com.lfp.unibus
 
 import com.fasterxml.jackson.databind.module.SimpleModule
 import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer
+import org.springframework.boot.web.embedded.netty.NettyServerCustomizer
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.env.ConfigurableEnvironment
@@ -98,6 +99,23 @@ class Config {
       val module =
           SimpleModule().apply { addDeserializer(ByteArray::class.java, ByteArrayDeserializer()) }
       builder.modulesToInstall(module)
+    }
+  }
+
+  /**
+   * Customizes Netty server to add MQTT detection handler.
+   *
+   * Adds a channel handler that detects MQTT protocol magic bytes before
+   * the WebSocket upgrade handler processes the connection.
+   *
+   * @return NettyServerCustomizer that adds MqttDetectionHandler to the pipeline
+   */
+  @Bean
+  fun nettyServerCustomizer(): NettyServerCustomizer {
+    return NettyServerCustomizer { httpServer ->
+      httpServer.doOnChannelInit { _, channel, _ ->
+        channel.pipeline().addFirst("mqttDetection", MqttDetectionHandler())
+      }
     }
   }
 }
