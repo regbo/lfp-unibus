@@ -1,14 +1,12 @@
 package com.lfp.unibus.common.data
 
 import org.apache.kafka.clients.consumer.ConsumerRecord
-import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.common.utils.Bytes
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
-import java.util.Optional
+import java.util.*
 
 /**
  * Test class for ConsumerData serialization.

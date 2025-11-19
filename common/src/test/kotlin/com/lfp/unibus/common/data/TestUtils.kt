@@ -2,12 +2,12 @@ package com.lfp.unibus.common.data
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.json.JsonMapper
+import kotlin.io.encoding.Base64
 import org.apache.kafka.common.header.Header
 import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.common.utils.Bytes
 import org.junit.jupiter.api.Assertions.assertEquals
-import kotlin.io.encoding.Base64
 
 /** Test utilities for common test data and helper functions. */
 object TestUtils {
@@ -134,41 +134,5 @@ object TestUtils {
         actualBytes.contentToString(),
         message,
     )
-  }
-
-  /**
-   * Asserts that two Headers collections are equal.
-   *
-   * @param expected Expected Headers
-   * @param actual Actual Headers
-   * @param message Error message prefix
-   */
-  @JvmStatic
-  fun assertHeadersEquals(
-      expected: org.apache.kafka.common.header.Headers?,
-      actual: org.apache.kafka.common.header.Headers?,
-      message: String = "",
-  ) {
-    if (expected == null && actual == null) return
-    if (expected == null || actual == null) {
-      assertEquals(expected, actual, message)
-      return
-    }
-    val expectedList = expected.toList()
-    val actualList = actual.toList()
-    assertEquals(expectedList.size, actualList.size, "$message: Header count mismatch")
-    expectedList.forEachIndexed { index, expectedHeader ->
-      val actualHeader = actualList[index]
-      assertEquals(
-          expectedHeader.key(),
-          actualHeader.key(),
-          "$message: Header[$index] key mismatch",
-      )
-      assertEquals(
-          expectedHeader.value()?.contentToString(),
-          actualHeader.value()?.contentToString(),
-          "$message: Header[$index] value mismatch",
-      )
-    }
   }
 }

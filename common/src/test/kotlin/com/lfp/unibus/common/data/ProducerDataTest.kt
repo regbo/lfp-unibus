@@ -1,11 +1,8 @@
 package com.lfp.unibus.common.data
 
 import com.fasterxml.jackson.databind.node.ObjectNode
-import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.utils.Bytes
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNotNull
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
 /**
@@ -308,20 +305,20 @@ class ProducerDataTest {
     if (deserialized.key() != null && original.key() != null) {
       val keyBytes = deserialized.key()!!.get()
       val originalKeyBytes = original.key()!!.get()!!
-      if (keyBytes != null && originalKeyBytes != null) {
+      if (keyBytes != null) {
         assertEquals(originalKeyBytes.contentToString(), keyBytes.contentToString())
       }
     }
     if (deserialized.value() != null && original.value() != null) {
       val valueBytes = deserialized.value()!!.get()
       val originalValueBytes = original.value()!!.get()!!
-      if (valueBytes != null && originalValueBytes != null) {
+      if (valueBytes != null) {
         assertEquals(originalValueBytes.contentToString(), valueBytes.contentToString())
       }
     }
     // Verify headers are present if they were in the original
     if (original.headers().toList().isNotEmpty()) {
-      assertEquals(true, deserialized.headers().toList().size >= 0)
+      assertEquals(true, true)
     }
   }
 
