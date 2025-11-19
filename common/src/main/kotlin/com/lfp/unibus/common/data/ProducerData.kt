@@ -15,6 +15,12 @@ import org.apache.kafka.common.header.Header
 import org.apache.kafka.common.utils.Bytes
 import reactor.kafka.sender.SenderRecord
 
+/**
+ * Kafka producer record data model.
+ *
+ * Extends ProducerRecord with JSON deserialization support. Can be created from JSON or used
+ * directly as a ProducerRecord.
+ */
 class ProducerData
 @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
 constructor(
@@ -30,6 +36,12 @@ constructor(
     headers: Collection<Header?>? = null,
 ) : ProducerRecord<Bytes, Bytes>(topic, partition, timestamp, key, value, headers) {
 
+  /**
+   * Converts to Reactor Kafka SenderRecord.
+   *
+   * @param correlationMetadata Optional correlation metadata
+   * @return SenderRecord ready for sending
+   */
   fun <T> toSenderRecord(correlationMetadata: T? = null): SenderRecord<Bytes, Bytes, T> {
     return SenderRecord.create(this, correlationMetadata)
   }
@@ -43,6 +55,16 @@ constructor(
             ProducerData::headers,
         )
 
+    /**
+     * Reads ProducerData from JSON string.
+     *
+     * Supports single objects or arrays. If input is not a record structure, treats entire input as value.
+     *
+     * @param mapper ObjectMapper for JSON parsing
+     * @param topic Kafka topic name
+     * @param input JSON string input
+     * @return List of ProducerData instances
+     */
     @JvmStatic
     fun read(mapper: ObjectMapper, topic: String, input: String?): List<ProducerData> {
       return read(mapper, topic, readTree(mapper, input), true)

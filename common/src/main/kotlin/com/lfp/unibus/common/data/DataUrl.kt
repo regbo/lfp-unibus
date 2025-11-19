@@ -5,6 +5,12 @@ import java.net.URLDecoder
 import java.nio.charset.Charset
 import java.util.*
 
+/**
+ * Data URL representation for binary data.
+ *
+ * Supports parsing and formatting of data: URLs with Base64 encoding.
+ * Used for serializing binary data in JSON payloads.
+ */
 @Suppress("ArrayInDataClass")
 data class DataUrl(
     val mediaType: MediaType = DEFAULT_MEDIA_TYPE,
@@ -41,6 +47,14 @@ data class DataUrl(
     private const val DATA_URL_PREFIX = "data:"
     private const val BASE64_TOKEN = "base64"
 
+    /**
+     * Parses a data URL string.
+     *
+     * Supports data URLs with media type, charset, parameters, and Base64 encoding.
+     *
+     * @param input Data URL string to parse
+     * @return Parsed DataUrl instance or null if invalid
+     */
     @JvmStatic
     fun parse(input: String?): DataUrl? {
       val s = input?.trim() ?: return null

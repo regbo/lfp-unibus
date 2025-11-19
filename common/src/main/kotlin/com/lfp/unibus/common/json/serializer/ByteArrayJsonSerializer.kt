@@ -13,6 +13,11 @@ import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
 
+/**
+ * Jackson serializer for ByteArray.
+ *
+ * Attempts to decode as UTF-8 text or parse as JSON. If both fail, serializes as data URL.
+ */
 class ByteArrayJsonSerializer : JsonSerializer<ByteArray>() {
 
   override fun serialize(value: ByteArray?, gen: JsonGenerator, serializers: SerializerProvider?) {

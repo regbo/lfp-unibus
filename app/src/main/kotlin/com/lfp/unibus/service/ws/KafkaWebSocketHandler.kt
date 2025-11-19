@@ -19,18 +19,17 @@ import reactor.core.publisher.Mono
 import reactor.kafka.sender.SenderRecord
 
 /**
- * WebSocket handler that bridges WebSocket connections to Apache Kafka.
+ * WebSocket handler bridging connections to Kafka.
  *
- * Handles WebSocket connections and translates them into Kafka producer/consumer operations. The
- * topic name is derived from the WebSocket URL path segments. Query parameters control
- * producer/consumer behavior and Kafka configuration options.
+ * Translates WebSocket messages to Kafka producer/consumer operations. Topic name derived from URL
+ * path segments. Query parameters control producer/consumer behavior and Kafka configuration.
  *
- * URL Format:
- * ws://host:port/{topic-segments}?producer={true|false}&consumer={true|false}&{kafka-config}
+ * URL Format: ws://host:port/{topic-segments}?producer={true|false}&consumer={true|false}&{kafka-config}
  *
- * @param conversionService Spring conversion service for type conversion
- * @param objectMapper Jackson ObjectMapper for JSON serialization/deserialization
- * @param kafkaOptions Map of Kafka configuration options from environment properties
+ * @param conversionService Spring conversion service
+ * @param objectMapper Jackson ObjectMapper for JSON serialization
+ * @param kafkaService Kafka service for creating producers/consumers
+ * @param kafkaConfig Kafka configuration from environment properties
  */
 @Component
 class KafkaWebSocketHandler(
@@ -47,16 +46,16 @@ class KafkaWebSocketHandler(
   private val logger = LoggerFactory.getLogger(this::class.java)
 
   /**
-   * Handles a WebSocket session by setting up Kafka producer and/or consumer flows.
+   * Handles WebSocket session by setting up Kafka producer/consumer flows.
    *
-   * The topic name is extracted from URL path segments (joined with underscores). Query parameters:
-   * - "producer": Enable producer (default: true)
-   * - "consumer": Enable consumer (default: true)
-   * - "producer.{kafka-property}": Producer-specific Kafka configuration
-   * - "consumer.{kafka-property}": Consumer-specific Kafka configuration
+   * Topic name extracted from URL path segments. Query parameters:
+   * - producer: Enable producer (default: true)
+   * - consumer: Enable consumer (default: true)
+   * - producer.{kafka-property}: Producer-specific Kafka config
+   * - consumer.{kafka-property}: Consumer-specific Kafka config
    *
-   * @param session The WebSocket session to handle
-   * @return Mono that completes when the session closes
+   * @param session WebSocket session
+   * @return Mono completing when session closes
    */
   override fun handle(session: WebSocketSession): Mono<Void> {
 
@@ -130,11 +129,11 @@ class KafkaWebSocketHandler(
   }
 
   /**
-   * Converts a WebSocket message string to a Kafka SenderRecord.
+   * Converts WebSocket message to Kafka sender records.
    *
-   * @param topic The Kafka topic name
-   * @param msg The JSON message string from WebSocket
-   * @return SenderRecord ready to be sent to Kafka
+   * @param topic Kafka topic name
+   * @param msg JSON message string from WebSocket
+   * @return List of SenderRecords ready for Kafka
    */
   private fun toSenderRecords(
       topic: String,
@@ -144,13 +143,10 @@ class KafkaWebSocketHandler(
   }
 
   /**
-   * Converts a Kafka ConsumerRecord to a JSON string payload.
+   * Converts Kafka ConsumerRecord to JSON string payload.
    *
-   * Extracts all record metadata and content, converts headers, key, and value to JsonNode format,
-   * and serializes to JSON string for WebSocket transmission.
-   *
-   * @param record The Kafka ConsumerRecord to convert
-   * @return JSON string representation of the consumer record
+   * @param record Kafka ConsumerRecord to convert
+   * @return JSON string representation
    */
   private fun toConsumerPayload(record: ConsumerRecord<Bytes, Bytes>): String {
     val producerData = ConsumerData(record)

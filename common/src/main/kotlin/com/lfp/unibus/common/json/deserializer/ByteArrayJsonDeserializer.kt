@@ -10,6 +10,11 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.lfp.unibus.common.data.DataUrl
 import java.io.ByteArrayOutputStream
 
+/**
+ * Jackson deserializer for ByteArray.
+ *
+ * Supports deserializing from strings (including data URLs), JSON nodes, or null values.
+ */
 class ByteArrayJsonDeserializer : JsonDeserializer<ByteArray>() {
   override fun deserialize(p: JsonParser, ctxt: DeserializationContext): ByteArray? {
     return deserialize(p)

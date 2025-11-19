@@ -13,6 +13,12 @@ import org.apache.kafka.common.record.TimestampType
 import org.apache.kafka.common.utils.Bytes
 import java.util.*
 
+/**
+ * Kafka consumer record data model.
+ *
+ * Extends ConsumerRecord with JSON serialization support. Used for sending consumer records
+ * over WebSocket connections.
+ */
 class ConsumerData(
     topic: String,
     partition: Int,

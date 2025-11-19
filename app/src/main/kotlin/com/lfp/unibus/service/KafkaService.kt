@@ -10,13 +10,34 @@ import reactor.kafka.receiver.ReceiverOptions
 import reactor.kafka.sender.KafkaSender
 import reactor.kafka.sender.SenderOptions
 
+/**
+ * Service for creating Kafka producers and consumers.
+ *
+ * Provides factory methods for creating Reactor Kafka senders and receivers.
+ */
 @Service
 class KafkaService {
 
+  /**
+   * Creates a Kafka sender for producing messages.
+   *
+   * @param config Producer configuration
+   * @return KafkaSender instance
+   */
   fun producer(config: ProducerConfig): KafkaSender<Bytes, Bytes> {
     return KafkaSender.create(SenderOptions.create(config.originals()))
   }
 
+  /**
+   * Creates a Kafka receiver for consuming messages.
+   *
+   * Uses subscription if group ID is set, otherwise uses partition assignment.
+   *
+   * @param config Consumer configuration
+   * @param topic Primary topic to consume from
+   * @param topics Additional topics to consume from
+   * @return KafkaReceiver instance
+   */
   fun consumer(
       config: ConsumerConfig,
       topic: String,

@@ -5,6 +5,11 @@ import com.fasterxml.jackson.databind.JsonSerializer
 import com.fasterxml.jackson.databind.SerializerProvider
 import org.apache.kafka.common.header.Header
 
+/**
+ * Jackson serializer for Kafka Header.
+ *
+ * Serializes as object with "key" and "value" fields.
+ */
 class HeaderJsonSerializer : JsonSerializer<Header>() {
   override fun serialize(value: Header?, gen: JsonGenerator, serializers: SerializerProvider?) {
     if (value != null) {

@@ -5,6 +5,11 @@ import com.fasterxml.jackson.databind.DeserializationContext
 import com.fasterxml.jackson.databind.JsonDeserializer
 import org.apache.kafka.common.utils.Bytes
 
+/**
+ * Jackson deserializer for Kafka Bytes.
+ *
+ * Deserializes to Bytes by wrapping ByteArray from ByteArrayJsonDeserializer.
+ */
 class BytesJsonDeserializer : JsonDeserializer<Bytes>() {
 
   override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Bytes? {

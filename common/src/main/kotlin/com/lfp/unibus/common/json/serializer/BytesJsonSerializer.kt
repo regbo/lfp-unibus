@@ -5,6 +5,11 @@ import com.fasterxml.jackson.databind.JsonSerializer
 import com.fasterxml.jackson.databind.SerializerProvider
 import org.apache.kafka.common.utils.Bytes
 
+/**
+ * Jackson serializer for Kafka Bytes.
+ *
+ * Serializes by extracting ByteArray and using ByteArrayJsonSerializer.
+ */
 class BytesJsonSerializer : JsonSerializer<Bytes>() {
 
   override fun serialize(value: Bytes?, gen: JsonGenerator, serializers: SerializerProvider?) {

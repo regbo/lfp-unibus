@@ -8,6 +8,11 @@ import com.fasterxml.jackson.databind.JsonNode
 import org.apache.kafka.common.header.Header
 import org.apache.kafka.common.header.internals.RecordHeader
 
+/**
+ * Jackson deserializer for Kafka Header.
+ *
+ * Supports array format [key, value] or object format {"key": "...", "value": ...}.
+ */
 class HeaderJsonDeserializer : JsonDeserializer<Header>() {
   override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Header? {
     return when (p.currentToken()) {
