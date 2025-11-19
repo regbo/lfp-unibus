@@ -1,22 +1,24 @@
 package com.lfp.unibus
 
+import com.lfp.unibus.common.KafkaConfig
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 /**
  * Main Spring Boot application class for the LFP Unibus service.
  *
- * This application provides a WebSocket-based interface to Apache Kafka, allowing clients to
- * produce and consume Kafka messages through WebSocket connections.
+ * Provides a WebSocket-based interface to Apache Kafka for bidirectional message streaming.
  */
-@SpringBootApplication class App
+@SpringBootApplication() class App
 
 /**
  * Application entry point.
  *
- * Starts the Spring Boot application which initializes the WebSocket server and Kafka integration
- * components.
+ * Starts the Spring Boot application and initializes WebSocket server and Kafka integration.
  */
 fun main() {
-    runApplication<App>()
+  val ctx = runApplication<App>()
+  val kafkaConfig = ctx.getBean(KafkaConfig::class.java)
+  println(kafkaConfig.producer())
+  println(kafkaConfig.consumer())
 }

@@ -1,10 +1,10 @@
 # LFP Unibus
 
-A Spring Boot application that provides a WebSocket-based interface to Apache Kafka, allowing clients to produce and consume Kafka messages through WebSocket connections.
+A Spring Boot application providing a WebSocket interface to Apache Kafka for bidirectional message streaming.
 
 ## Overview
 
-LFP Unibus bridges WebSocket connections and Apache Kafka, enabling real-time bidirectional communication with Kafka topics. The application extracts topic names from WebSocket URL paths and supports flexible configuration through query parameters.
+Bridges WebSocket connections to Kafka topics, enabling real-time bidirectional communication. Topic names are derived from WebSocket URL paths with flexible configuration via query parameters.
 
 ## Features
 
@@ -151,19 +151,17 @@ Received messages are JSON objects with the following structure:
 
 ### Components
 
-- **App**: Main Spring Boot application entry point
-- **Config**: Spring configuration for WebSocket handling and Kafka options
-- **KafkaWebSocketHandler**: Core WebSocket handler that bridges connections to Kafka
-- **ProducerData**: Data class for producer message payloads
-- **ConsumerData**: Data class for consumer message payloads
-- **ByteArrayDeserializer**: Custom Jackson deserializer for Base64-encoded byte arrays
+- **app**: Main application module with WebSocket handlers
+- **common**: Shared module with Kafka configuration and data models
+- **KafkaWebSocketHandler**: WebSocket handler bridging connections to Kafka
+- **KafkaService**: Service for creating Kafka producers and consumers
+- **KafkaConfig**: Shared Kafka configuration from environment properties
 
 ### Technology Stack
 
 - **Spring Boot**: Application framework
-- **Spring WebFlux**: Reactive web framework for WebSocket support
+- **Spring WebFlux**: Reactive web framework
 - **Reactor Kafka**: Reactive Kafka client
-- **Jackson**: JSON serialization/deserialization
 - **Kotlin**: Programming language
 
 ## Development
@@ -171,20 +169,19 @@ Received messages are JSON objects with the following structure:
 ### Project Structure
 
 ```
-app/
-  src/
-    main/
-      kotlin/com/lfp/unibus/
-        App.kt                    # Main application class
-        Config.kt                 # Spring configuration
-        KafkaWebSocketHandler.kt  # WebSocket handler
-        ProducerData.kt           # Producer data model
-        ConsumerData.kt           # Consumer data model
-        ByteArrayDeserializer.kt  # Custom deserializer
-      resources/
-        application.yaml          # Application configuration
-    test/
-      kotlin/com/lfp/unibus/     # Test files
+lfp-unibus/
+  app/                           # Main application module
+    src/main/kotlin/com/lfp/unibus/
+      App.kt                     # Application entry point
+      Config.kt                  # Spring configuration
+      service/
+        ws/KafkaWebSocketHandler.kt  # WebSocket handler
+        KafkaService.kt          # Kafka service
+  common/                        # Shared module
+    src/main/kotlin/com/lfp/unibus/common/
+      KafkaConfig.kt             # Kafka configuration
+      data/                      # Data models
+      json/                      # JSON serializers/deserializers
 ```
 
 ### Building and Testing

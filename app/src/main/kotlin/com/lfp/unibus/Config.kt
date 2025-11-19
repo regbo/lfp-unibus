@@ -1,23 +1,20 @@
 package com.lfp.unibus
 
-import com.fasterxml.jackson.databind.module.SimpleModule
-import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilderCustomizer
-import org.springframework.boot.web.embedded.netty.NettyServerCustomizer
+import com.lfp.unibus.service.ws.KafkaWebSocketHandler
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.core.env.ConfigurableEnvironment
-import org.springframework.core.env.EnumerablePropertySource
-import org.springframework.core.env.Environment
-import org.springframework.core.env.PropertySource
+import org.springframework.stereotype.Component
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping
 import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAdapter
-import java.util.*
+import org.springframework.web.server.ServerWebExchange
+import org.springframework.web.server.WebExceptionHandler
+import reactor.core.publisher.Mono
 
 /**
  * Spring configuration class for the LFP Unibus application.
  *
- * Configures WebSocket handling, Kafka options from environment properties,
- * and Jackson object mapper customization for ByteArray deserialization.
+ * Configures WebSocket handling and global error handling.
  */
 @Configuration
 class Config {
@@ -27,8 +24,7 @@ class Config {
    *
    * @return WebSocketHandlerAdapter instance
    */
-  @Bean
-  fun webSocketHandlerAdapter() = WebSocketHandlerAdapter()
+  @Bean fun webSocketHandlerAdapter() = WebSocketHandlerAdapter()
 
   /**
    * Configures URL handler mapping for WebSocket connections.
@@ -44,78 +40,17 @@ class Config {
   }
 
   /**
-   * Extracts Kafka configuration options from environment properties.
+   * Global error handler for WebFlux exceptions.
    *
-   * Scans all environment property sources for properties prefixed with kafka.
-   * and returns them as a map.
-   *
-   * @param env The Spring Environment containing configuration properties
-   * @return Unmodifiable map of Kafka configuration options (keys without kafka. prefix)
+   * Logs errors and completes the response.
    */
-  @Bean
-  fun kafkaOptions(env: Environment): Map<String, Any?> {
-    val propertySource =
-        when (env) {
-          is ConfigurableEnvironment -> {
-            env.propertySources
-          }
-          is PropertySource<*> -> {
-            listOf(env)
-          }
-          else -> {
-            emptyList()
-          }
-        }
+  @Component
+  class GlobalErrorHandler : WebExceptionHandler {
+    private val log = LoggerFactory.getLogger(this::class.java)
 
-    val kafkaOptions =
-        propertySource
-            .filterIsInstance<EnumerablePropertySource<*>>()
-            .flatMap { it.propertyNames.asList() }
-            .distinct()
-            .mapNotNull { key ->
-              val kafkaKey = key.substringAfter("kafka.", "")
-              if (kafkaKey.isNotEmpty()) {
-                val kafkaValue = env.getProperty(key)
-                if (kafkaValue != null && kafkaValue.isNotEmpty()) {
-                  return@mapNotNull Pair<String, Any?>(kafkaKey, kafkaValue)
-                }
-              }
-              null
-            }
-            .toMap(LinkedHashMap())
-    return Collections.unmodifiableMap(kafkaOptions)
-  }
-
-  /**
-   * Customizes Jackson ObjectMapper to use ByteArrayDeserializer for ByteArray types.
-   *
-   * This allows proper deserialization of Base64-encoded byte arrays in JSON payloads.
-   *
-   * @return Jackson2ObjectMapperBuilderCustomizer that registers ByteArrayDeserializer
-   */
-  @Bean
-  fun jacksonCustomizer(): Jackson2ObjectMapperBuilderCustomizer {
-    return Jackson2ObjectMapperBuilderCustomizer { builder ->
-      val module =
-          SimpleModule().apply { addDeserializer(ByteArray::class.java, ByteArrayDeserializer()) }
-      builder.modulesToInstall(module)
-    }
-  }
-
-  /**
-   * Customizes Netty server to add MQTT detection handler.
-   *
-   * Adds a channel handler that detects MQTT protocol magic bytes before
-   * the WebSocket upgrade handler processes the connection.
-   *
-   * @return NettyServerCustomizer that adds MqttDetectionHandler to the pipeline
-   */
-  @Bean
-  fun nettyServerCustomizer(): NettyServerCustomizer {
-    return NettyServerCustomizer { httpServer ->
-      httpServer.doOnChannelInit { _, channel, _ ->
-        channel.pipeline().addFirst("mqttDetection", MqttDetectionHandler())
-      }
+    override fun handle(exchange: ServerWebExchange, ex: Throwable): Mono<Void> {
+      log.error("Web error", ex)
+      return exchange.response.setComplete()
     }
   }
 }

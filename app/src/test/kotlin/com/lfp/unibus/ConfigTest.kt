@@ -1,7 +1,10 @@
 package com.lfp.unibus
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.lfp.unibus.service.ws.KafkaWebSocketHandler
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
+import org.springframework.core.convert.support.DefaultConversionService
 import org.springframework.core.env.MapPropertySource
 import org.springframework.core.env.StandardEnvironment
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping
@@ -26,8 +29,8 @@ class ConfigTest {
   @Test
   fun `handlerMapping creates SimpleUrlHandlerMapping`() {
     val handler = KafkaWebSocketHandler(
-        org.springframework.core.convert.support.DefaultConversionService(),
-        com.fasterxml.jackson.databind.ObjectMapper(),
+        DefaultConversionService(),
+        ObjectMapper(),
         emptyMap()
     )
     val mapping = config.handlerMapping(handler)

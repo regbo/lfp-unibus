@@ -1,31 +1,11 @@
-plugins {
-  alias(libs.plugins.kotlin.jvm)
-  alias(libs.plugins.kotlin.spring)
-  application
-}
-
-repositories { mavenCentral() }
-
-repositories { mavenCentral() }
+plugins { application }
 
 dependencies {
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-    testImplementation(libs.junit.jupiter.engine)
-    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
-    implementation(platform(libs.spring.boot.dependencies))
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-
-    implementation(libs.reactor.kafka)
-    implementation(libs.kafka.clients)
+  implementation(project(":common"))
+  implementation("org.springframework.boot:spring-boot-starter-webflux")
+  implementation("org.springframework.boot:spring-boot-autoconfigure")
+  implementation("org.eclipse.paho:org.eclipse.paho.mqttv5.client:1.2.5")
+  implementation("io.netty:netty-codec-mqtt:4.2.7.Final")
 }
 
-val jdkVersion = properties["jdk.version"] as String
-
-java { toolchain { languageVersion = JavaLanguageVersion.of(jdkVersion) } }
-
-kotlin { jvmToolchain(jdkVersion.toInt()) }
-
 application { mainClass = "com.lfp.unibus.AppKt" }
-
-tasks.named<Test>("test") { useJUnitPlatform() }
