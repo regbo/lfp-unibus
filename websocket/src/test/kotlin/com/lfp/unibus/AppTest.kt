@@ -1,5 +1,6 @@
 package com.lfp.unibus
 
+import com.lfp.unibus.websocket.App
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 

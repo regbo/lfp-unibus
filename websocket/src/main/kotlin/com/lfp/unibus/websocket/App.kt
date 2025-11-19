@@ -1,6 +1,6 @@
-package com.lfp.unibus
+package com.lfp.unibus.websocket
 
-import com.lfp.unibus.common.KafkaConfig
+import com.lfp.unibus.common.KafkaService
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
@@ -9,7 +9,7 @@ import org.springframework.boot.runApplication
  *
  * Provides a WebSocket-based interface to Apache Kafka for bidirectional message streaming.
  */
-@SpringBootApplication() class App
+@SpringBootApplication(scanBasePackages = ["com.lfp.unibus"]) class App
 
 /**
  * Application entry point.
@@ -18,7 +18,5 @@ import org.springframework.boot.runApplication
  */
 fun main() {
   val ctx = runApplication<App>()
-  val kafkaConfig = ctx.getBean(KafkaConfig::class.java)
-  println(kafkaConfig.producer())
-  println(kafkaConfig.consumer())
+  val kafkaService = ctx.getBean(KafkaService::class.java)
 }

@@ -1,4 +1,4 @@
-package com.lfp.unibus.service.mqtt
+package com.lfp.unibus.websocket.service.mqtt
 
 import io.netty.buffer.ByteBuf
 import io.netty.channel.ChannelHandlerContext

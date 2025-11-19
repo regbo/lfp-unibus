@@ -13,5 +13,5 @@ plugins {
 rootProject.name = "lfp-unibus"
 
 include("common")
-include("app")
+include("websocket")
 

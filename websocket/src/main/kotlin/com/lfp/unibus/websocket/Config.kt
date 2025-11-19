@@ -1,6 +1,6 @@
-package com.lfp.unibus
+package com.lfp.unibus.websocket
 
-import com.lfp.unibus.service.ws.KafkaWebSocketHandler
+import com.lfp.unibus.websocket.KafkaWebSocketHandler
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.reactive.handler.SimpleUrlHandlerMapping

@@ -24,9 +24,12 @@ subprojects {
   repositories { mavenCentral() }
 
   dependencies {
+    // main
+    add("implementation", platform(libs.spring.boot.dependencies))
+
+    // test
     add("testImplementation", "org.jetbrains.kotlin:kotlin-test-junit5")
     add("testImplementation", libs.junit.jupiter.engine)
     add("testRuntimeOnly", "org.junit.platform:junit-platform-launcher")
-    add("implementation", platform(libs.spring.boot.dependencies))
   }
 }

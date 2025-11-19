@@ -1,11 +1,10 @@
-package com.lfp.unibus.service.ws
+package com.lfp.unibus.websocket
 
 import com.fasterxml.jackson.databind.MapperFeature
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.lfp.unibus.common.KafkaConfig
+import com.lfp.unibus.common.KafkaService
 import com.lfp.unibus.common.data.ConsumerData
 import com.lfp.unibus.common.data.ProducerData
-import com.lfp.unibus.service.KafkaService
 import org.apache.kafka.clients.consumer.ConsumerRecord
 import org.apache.kafka.common.utils.Bytes
 import org.slf4j.LoggerFactory
@@ -24,26 +23,27 @@ import reactor.kafka.sender.SenderRecord
  * Translates WebSocket messages to Kafka producer/consumer operations. Topic name derived from URL
  * path segments. Query parameters control producer/consumer behavior and Kafka configuration.
  *
- * URL Format: ws://host:port/{topic-segments}?producer={true|false}&consumer={true|false}&{kafka-config}
+ * URL Format:
+ * ws://host:port/{topic-segments}?producer={true|false}&consumer={true|false}&{kafka-config}
  *
  * @param conversionService Spring conversion service
  * @param objectMapper Jackson ObjectMapper for JSON serialization
  * @param kafkaService Kafka service for creating producers/consumers
- * @param kafkaConfig Kafka configuration from environment properties
+ * @param kafkaService Kafka configuration from environment properties
  */
+
 @Component
 class KafkaWebSocketHandler(
     var conversionService: ConversionService,
     var objectMapper: ObjectMapper,
     var kafkaService: KafkaService,
-    var kafkaConfig: KafkaConfig,
 ) : WebSocketHandler {
 
   init {
     objectMapper = objectMapper.copy().apply { enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS) }
   }
 
-  private val logger = LoggerFactory.getLogger(this::class.java)
+    private val log= LoggerFactory.getLogger(this::class.java)
 
   /**
    * Handles WebSocket session by setting up Kafka producer/consumer flows.
@@ -81,8 +81,7 @@ class KafkaWebSocketHandler(
     }
     val consumeFlow =
         if (consumerEnabled) {
-          val consumerConfig = kafkaConfig.consumer(uri.queryParams.asSingleValueMap())
-          val consumer = kafkaService.consumer(consumerConfig, topic)
+          val consumer = kafkaService.consumer(topic, uri.queryParams.asSingleValueMap())
           val kafkaFlux =
               consumer
                   .receive()
@@ -90,7 +89,7 @@ class KafkaWebSocketHandler(
                   .map { record -> toConsumerPayload(record) }
                   .map { session.textMessage(it) }
                   .onErrorResume { e ->
-                    logger.error("consumer error", e)
+                    log.error("consumer error", e)
                     Mono.error(e)
                   }
 
@@ -101,15 +100,14 @@ class KafkaWebSocketHandler(
 
     val produceFlow =
         if (producerEnabled) {
-          val producerConfig = kafkaConfig.producer(uri.queryParams.asSingleValueMap())
-          val producer = kafkaService.producer(producerConfig)
+          val producer = kafkaService.producer(uri.queryParams.asSingleValueMap())
           session
               .receive()
               .takeUntilOther(session.closeStatus().then())
               .flatMapIterable { msg -> toSenderRecords(topic, msg.payloadAsText) }
               .flatMap { record -> producer.send(Mono.just(record)) }
               .onErrorResume { e ->
-                logger.error("producer error", e)
+                log.error("producer error", e)
                 Mono.error(e)
               }
               .then()
@@ -139,7 +137,7 @@ class KafkaWebSocketHandler(
       topic: String,
       msg: String,
   ): List<SenderRecord<Bytes, Bytes, *>> {
-    return ProducerData.read(objectMapper, topic, msg).map { it.toSenderRecord<Any>() }
+    return ProducerData.Companion.read(objectMapper, topic, msg).map { it.toSenderRecord<Any>() }
   }
 
   /**

@@ -98,7 +98,11 @@ ws://localhost:8888/my-topic?producer.client.id=my-producer
 
 ### Producing Messages
 
-Send JSON messages through the WebSocket connection with the following structure:
+Send JSON messages through the WebSocket connection. The message format is flexible and supports multiple input formats. The `key` and `value` fields accept various formats that are automatically converted to binary data:
+
+#### Single Message Object
+
+Send a single message with full control over all fields:
 
 ```json
 {
@@ -106,8 +110,6 @@ Send JSON messages through the WebSocket connection with the following structure
   "timestamp": 1234567890000,
   "key": "message-key",
   "value": {"field": "value"},
-  "keyBinary": null,
-  "valueBinary": null,
   "headers": [
     {"key": "header-key", "value": "header-value"}
   ]
@@ -117,13 +119,72 @@ Send JSON messages through the WebSocket connection with the following structure
 **Fields:**
 - `partition`: Optional partition number (null for automatic assignment)
 - `timestamp`: Optional timestamp in milliseconds (null for current time)
-- `key`: Key as JSON (mutually exclusive with `keyBinary`)
-- `keyBinary`: Key as Base64-encoded binary (mutually exclusive with `key`)
-- `value`: Value as JSON (mutually exclusive with `valueBinary`)
-- `valueBinary`: Value as Base64-encoded binary (mutually exclusive with `value`)
-- `headers`: Optional list of headers
+- `key`: Optional key. Accepts:
+  - **Data URL**: `"data:text/plain;base64,SGVsbG8gV29ybGQ="` (base64-encoded binary)
+  - **Plain string**: `"message-key"` (encoded as UTF-8 bytes)
+  - **JSON object/array**: `{"field": "value"}` or `[1, 2, 3]` (serialized to JSON bytes)
+- `value`: Optional value. Accepts the same formats as `key`:
+  - **Data URL**: `"data:text/plain;base64,SGVsbG8gV29ybGQ="`
+  - **Plain string**: `"simple-value"` (encoded as UTF-8 bytes)
+  - **JSON object/array**: `{"field": "value"}` or `[1, 2, 3]` (serialized to JSON bytes)
+- `headers`: Optional list of headers. Each header can be:
+  - **Array format**: `["header-key", "header-value"]`
+  - **Object format**: `{"key": "header-key", "value": "header-value"}`
 
-**Note**: For each key/value pair, only one format (JSON or binary) can be specified.
+**Note**: The `topic` field is automatically set from the WebSocket URL path and should not be included in the message.
+
+#### Array of Messages
+
+Send multiple messages at once by providing an array of message objects:
+
+```json
+[
+  {
+    "key": "key1",
+    "value": {"field": "value1"},
+    "headers": [["header1", "value1"]]
+  },
+  {
+    "key": "key2",
+    "value": {"field": "value2"},
+    "headers": [["header2", "value2"]]
+  }
+]
+```
+
+Each object in the array will be sent as a separate Kafka message to the topic. Headers can use either array format `[["key", "value"]]` or object format `[{"key": "key", "value": "value"}]`.
+
+#### Simple Value Format
+
+For simple use cases, you can send just a value without wrapping it in a message object. The value will be automatically converted to binary:
+
+```json
+"simple-string-value"
+```
+
+or
+
+```json
+{"field": "value"}
+```
+
+or
+
+```json
+[1, 2, 3]
+```
+
+When a simple value is provided, it will be treated as the message `value` field, with all other fields (key, partition, timestamp, headers) set to their defaults (null/empty). Strings are encoded as UTF-8 bytes, while JSON objects and arrays are serialized to JSON bytes.
+
+#### Array of Simple Values
+
+You can also send an array of simple values, where each value becomes a separate message:
+
+```json
+["value1", "value2", "value3"]
+```
+
+This will produce three Kafka messages, each with the corresponding value. Each value is handled the same way as in the simple value format above.
 
 ### Consuming Messages
 
@@ -146,6 +207,24 @@ Received messages are JSON objects with the following structure:
   "deliveryCount": 1
 }
 ```
+
+**Fields:**
+- `partition`: Partition number
+- `offset`: Message offset
+- `timestamp`: Timestamp in milliseconds
+- `timestampType`: Type of timestamp (`CREATE_TIME`, `LOG_APPEND_TIME`, or `NO_TIMESTAMP_TYPE`)
+- `serializedKeySize`: Size of serialized key in bytes
+- `serializedValueSize`: Size of serialized value in bytes
+- `headers`: List of headers (always object format: `{"key": "...", "value": ...}`)
+- `key`: Message key. Serialized as:
+  - **String**: If the bytes are valid UTF-8 text
+  - **JSON object/array**: If the bytes are valid JSON
+  - **Data URL**: Otherwise (e.g., `"data:application/octet-stream;base64,..."`)
+- `value`: Message value. Serialized using the same logic as `key`
+- `leaderEpoch`: Optional leader epoch
+- `deliveryCount`: Optional delivery count
+
+**Note**: The `topic` field is not included in the JSON (it's available from the WebSocket URL path).
 
 ## Architecture
 

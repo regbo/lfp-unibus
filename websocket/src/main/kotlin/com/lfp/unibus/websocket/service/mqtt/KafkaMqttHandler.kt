@@ -1,7 +1,6 @@
-package com.lfp.unibus.service.mqtt
+package com.lfp.unibus.websocket.service.mqtt
 
-import com.lfp.unibus.common.KafkaConfig
-import com.lfp.unibus.service.KafkaService
+import com.lfp.unibus.common.KafkaService
 import io.netty.buffer.Unpooled
 import io.netty.channel.ChannelHandler
 import io.netty.channel.ChannelHandlerContext
@@ -38,7 +37,7 @@ import java.util.concurrent.ConcurrentHashMap
 @Component
 class KafkaMqttHandler(
     var kafkaService: KafkaService,
-    var kafkaConfig: KafkaConfig,
+    var kafkaConfig: KafkaService,
 ) : SimpleChannelInboundHandler<MqttMessage>() {
 
   private val logger = LoggerFactory.getLogger(this::class.java)
@@ -187,8 +186,10 @@ class KafkaMqttHandler(
 
       val consumer =
           kafkaService.consumer(
-              kafkaConfig.consumer(mapOf(ConsumerConfig.CLIENT_ID_CONFIG to getClientId(ctx))),
               mqttTopic,
+              kafkaConfig.consumerConfigProperties(
+                  mapOf(ConsumerConfig.CLIENT_ID_CONFIG to getClientId(ctx))
+              ),
           )
 
       val disposable =
@@ -314,7 +315,8 @@ class KafkaMqttHandler(
    */
   private fun getOrCreateKafkaSender(clientId: String): KafkaSender<Bytes, Bytes> {
     return kafkaSenders.computeIfAbsent(clientId) {
-      var producerConfig = kafkaConfig.producer(mapOf(ProducerConfig.CLIENT_ID_CONFIG to clientId))
+      var producerConfig =
+          kafkaConfig.producerConfigProperties(mapOf(ProducerConfig.CLIENT_ID_CONFIG to clientId))
       val producer = kafkaService.producer(producerConfig)
       producer
     }
