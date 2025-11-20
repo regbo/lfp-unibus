@@ -15,7 +15,9 @@ import org.springframework.web.reactive.socket.server.support.WebSocketHandlerAd
 class Config {
 
   /**
-   * WebSocket handler adapter bean.
+   * Creates the reactive WebSocket handler adapter.
+   *
+   * Required for Spring WebFlux to upgrade HTTP requests and delegate frames to KafkaWebSocketHandler.
    *
    * @return WebSocketHandlerAdapter instance
    */

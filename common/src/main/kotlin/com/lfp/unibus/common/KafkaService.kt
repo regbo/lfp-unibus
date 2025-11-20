@@ -21,8 +21,9 @@ private const val CLIENT_ID_PREFIX = "unibus"
 /**
  * Kafka configuration factory.
  *
- * Creates ProducerConfig and ConsumerConfig from environment properties and optional overrides.
- * Properties prefixed with "kafka." are automatically loaded from configuration.
+ * Creates ProducerConfig and ConsumerConfig from environment properties, exposes Reactor friendly
+ * producers and consumers, and provides access to an Admin client for metadata lookups such as
+ * topic descriptions. Properties prefixed with "kafka." are automatically loaded from configuration.
  */
 @EnableConfigurationProperties
 @Configuration
@@ -31,10 +32,27 @@ class KafkaService(kafkaProperties: KafkaProperties) {
   private val requiredProperties = Collections.unmodifiableMap(kafkaProperties.flatten())
   private val adminClientLazy = lazy { Admin.create(requiredProperties)!! }
 
+  /**
+   * Lazily creates or returns the shared Kafka Admin client.
+   *
+   * The Admin instance reuses the base application configuration and backs metadata lookups such as
+   * topic descriptions.
+   *
+   * @return Shared Admin client
+   */
   fun admin(): Admin {
     return adminClientLazy.value
   }
 
+  /**
+   * Describes a Kafka topic using the Admin client.
+   *
+   * Returns a Mono that emits the TopicDescription when present or completes empty when the topic
+   * does not exist or the broker responds with UnknownTopicOrPartitionException.
+   *
+   * @param topic Target topic name
+   * @return Mono emitting TopicDescription when found
+   */
   fun describeTopic(topic: String): Mono<TopicDescription> {
     val topicDescription: Mono<TopicDescription> =
         Mono.fromCompletionStage {

@@ -21,15 +21,16 @@ import reactor.kafka.sender.SenderRecord
 /**
  * WebSocket handler bridging connections to Kafka.
  *
- * Translates WebSocket messages to Kafka producer/consumer operations. Topic name derived from URL
- * path segments. Query parameters control producer/consumer behavior and Kafka configuration.
+ * Validates requested topics via Kafka Admin, then translates socket frames into producer sends or
+ * consumer streams. Topic name derived from URL path segments. Query parameters control
+ * producer/consumer behavior and Kafka configuration.
  *
  * URL Format:
  * ws://host:port/{topic-segments}?producer={true|false}&consumer={true|false}&{kafka-config}
  *
  * @param conversionService Spring conversion service
  * @param objectMapper Jackson ObjectMapper for JSON serialization
- * @param kafkaService Kafka service for creating producers/consumers
+ * @param kafkaService Kafka service for creating producers/consumers and describing topics
  */
 @Component
 class KafkaWebSocketHandler(
