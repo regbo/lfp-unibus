@@ -76,11 +76,7 @@ class KafkaMqttHandler(
     super.channelInactive(ctx)
   }
 
-  override fun acceptInboundMessage(msg: Any?): Boolean {
-    return super.acceptInboundMessage(msg)
-  }
-
-  /**
+    /**
    * Handles incoming MQTT messages.
    *
    * Routes messages to appropriate handlers based on message type (CONNECT, PUBLISH, SUBSCRIBE, etc.).
@@ -200,7 +196,7 @@ class KafkaMqttHandler(
         topicSubscriptions.map { it.topicName() },
     )
 
-    val clientId = getClientId(ctx)
+      getClientId(ctx)
 
     topicSubscriptions.forEach { subscription ->
       val mqttTopic = subscription.topicName()

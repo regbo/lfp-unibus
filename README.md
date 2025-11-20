@@ -1,18 +1,32 @@
-# LFP Unibus
+# Unibus
 
 A Spring Boot application providing a WebSocket interface to Apache Kafka for bidirectional message streaming.
 
+## Why Unibus?
+
+* Bridges WebSocket clients directly to Kafka topics for real time browser or device messaging
+* Supports both producing and consuming over a single durable socket
+* Exposes Kafka producer and consumer tuning knobs through simple query parameters
+* Accepts JSON, plain text, or binary payloads without extra tooling
+* Uses Spring WebFlux plus Reactor Kafka for highly concurrent workloads
+
+## Get Started
+
+1. Install JDK 21 and Gradle 8.14.3 or newer.
+2. Ensure access to a Kafka cluster reachable from the application.
+3. Clone the repository and build:
+   ```bash
+   ./gradlew build
+   ```
+4. Run the WebSocket bridge:
+   ```bash
+   ./gradlew bootRun
+   ```
+5. Connect a WebSocket client to `ws://localhost:8888/{topic}` to produce and/or consume messages.
+
 ## Overview
 
-Bridges WebSocket connections to Kafka topics, enabling real-time bidirectional communication. Topic names are derived from WebSocket URL paths with flexible configuration via query parameters.
-
-## Features
-
-- **WebSocket to Kafka Bridge**: Seamlessly connect WebSocket clients to Kafka topics
-- **Bidirectional Communication**: Support for both producing and consuming messages
-- **Flexible Configuration**: Configure Kafka producer and consumer settings via query parameters
-- **JSON and Binary Support**: Handle both JSON and binary message formats
-- **Reactive Architecture**: Built on Spring WebFlux and Reactor Kafka for high performance
+Bridges WebSocket connections to Kafka topics, enabling real time bidirectional communication. Topic names are derived from WebSocket URL paths with flexible configuration via query parameters.
 
 ## Requirements
 
@@ -61,6 +75,11 @@ Connect to Kafka topics via WebSocket using the following URL format:
 ws://host:port/{topic-segments}?producer={true|false}&consumer={true|false}&{kafka-config}
 ```
 
+All query parameters map directly to the Java Kafka producer and consumer configuration options.
+Use the official documentation to look up every available setting:
+[`Producer Configs`](https://kafka.apache.org/documentation/#producerconfigs) |
+[`Consumer Configs`](https://kafka.apache.org/documentation/#consumerconfigs)
+
 #### URL Components
 
 - **Path Segments**: The topic name is derived from URL path segments, joined with underscores
@@ -103,6 +122,10 @@ ws://localhost:8888/my-topic?producer.result=false
 ## Message Formats
 
 ### Producing Messages
+
+JSON payloads mirror the Java [`ProducerRecord`](https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/producer/ProducerRecord.html)
+shape. Any field accepted by `ProducerRecord` can be supplied, and the `key`/`value` encodings follow
+Kafka producer behavior.
 
 Send JSON messages through the WebSocket connection. The message format is flexible and supports multiple input formats. The `key` and `value` fields accept various formats that are automatically converted to binary data:
 
@@ -199,6 +222,9 @@ Received messages are JSON objects with a `type` field indicating the message ty
 - `RESULT`: Producer result confirmation (when producer.result is enabled)
 
 #### Consumer Records
+
+Consumer records mirror the Java [`ConsumerRecord`](https://kafka.apache.org/26/javadoc/org/apache/kafka/clients/consumer/ConsumerRecord.html)
+structure to keep deserialization predictable for clients that already speak Kafka.
 
 Consumer records have the following structure:
 

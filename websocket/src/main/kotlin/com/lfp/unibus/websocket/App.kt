@@ -18,5 +18,5 @@ import org.springframework.boot.runApplication
  */
 fun main() {
   val ctx = runApplication<App>()
-  val kafkaService = ctx.getBean(KafkaService::class.java)
+    ctx.getBean(KafkaService::class.java)
 }

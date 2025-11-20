@@ -1,16 +1,6 @@
 package com.lfp.unibus.common
 
 import com.lfp.unibus.common.Extensions.flatten
-import com.lfp.unibus.common.Extensions.lookup
-import java.lang.reflect.Modifier
-import java.util.*
-import kotlin.reflect.KClass
-import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.config.AbstractConfig
-import org.apache.kafka.common.serialization.BytesDeserializer
-import org.apache.kafka.common.serialization.BytesSerializer
 import org.apache.kafka.common.utils.Bytes
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
@@ -20,6 +10,9 @@ import reactor.kafka.receiver.KafkaReceiver
 import reactor.kafka.receiver.ReceiverOptions
 import reactor.kafka.sender.KafkaSender
 import reactor.kafka.sender.SenderOptions
+import java.util.*
+
+private const val CLIENT_ID_PREFIX = "unibus"
 
 /**
  * Kafka configuration factory.
@@ -39,9 +32,9 @@ class KafkaService(kafkaProperties: KafkaProperties) {
    * @param props Optional property overrides (can be prefixed with "producer.")
    * @return Configured ProducerConfig instance
    */
-  fun producerConfigProperties(vararg configs: Map<String, Any?>?): Map<String, Any> {
-    return configProperties(
-        ConfigType.PRODUCER,
+  fun producerConfigProperties(vararg configs: Map<String, Any?>??): Map<String, Any> {
+    return clientProperties(
+        ClientProperties.PRODUCER,
         *configs,
     )
   }
@@ -52,7 +45,7 @@ class KafkaService(kafkaProperties: KafkaProperties) {
    * @param config Producer configuration
    * @return KafkaSender instance
    */
-  fun producer(vararg configs: Map<String, Any?>?): KafkaSender<Bytes, Bytes> {
+  fun producer(vararg configs: Map<String, Any?>??): KafkaSender<Bytes, Bytes> {
     return KafkaSender.create(SenderOptions.create(producerConfigProperties(*configs)))
   }
 
@@ -62,9 +55,9 @@ class KafkaService(kafkaProperties: KafkaProperties) {
    * @param props Optional property overrides (can be prefixed with "consumer.")
    * @return Configured ConsumerConfig instance
    */
-  fun consumerConfigProperties(vararg configs: Map<String, Any?>?): Map<String, Any> {
-    return configProperties(
-        ConfigType.CONSUMER,
+  fun consumerConfigProperties(vararg configs: Map<String, Any?>??): Map<String, Any> {
+    return clientProperties(
+        ClientProperties.CONSUMER,
         *configs,
     )
   }
@@ -80,7 +73,7 @@ class KafkaService(kafkaProperties: KafkaProperties) {
    */
   fun consumer(
       topic: String,
-      vararg configs: Map<String, Any?>,
+      vararg configs: Map<String, Any?>?,
   ): KafkaReceiver<Bytes, Bytes> {
     return consumer(listOf(topic), *configs)
   }
@@ -97,60 +90,35 @@ class KafkaService(kafkaProperties: KafkaProperties) {
    */
   fun consumer(
       topics: Collection<String>,
-      vararg configs: Map<String, Any?>,
+      vararg configs: Map<String, Any?>?,
   ): KafkaReceiver<Bytes, Bytes> {
     val configProperties = consumerConfigProperties(*configs)
-    val receiverOptions = ReceiverOptions.create<Bytes, Bytes>(configProperties)
-    return KafkaReceiver.create(
-        if (configProperties[ConsumerConfig.GROUP_ID_CONFIG] == null) {
-          receiverOptions.assignment(topics.map { TopicPartition(it, 0) }.toList())
-        } else {
-          receiverOptions.subscription(topics.toList())
-        }
-    )
+    val receiverOptions =
+        ReceiverOptions.create<Bytes, Bytes>(configProperties).subscription(topics.toList())
+    return KafkaReceiver.create(receiverOptions)
   }
 
-  private fun configProperties(
-      configType: ConfigType,
+  private fun clientProperties(
+      clientProperties: ClientProperties,
       vararg configs: Map<String, Any?>?,
   ): Map<String, Any> {
-    val configProperties = LinkedHashMap<String, Any>()
+    val props = clientProperties.get(*configs)
+    props.putAll(this.requiredProperties)
+    return Collections.unmodifiableMap(props)
+  }
 
-    fun appendConfigValue(key: String, value: Any, require: Boolean = false): Boolean {
-      if (value is String && value.isEmpty()) return false
-      if (require) {
-        val currentValue = configProperties[key]
-        check(currentValue == null || currentValue == value) {
-          "required property '$key' can't be set to '$currentValue'"
-        }
-      }
-      configProperties[key] = value
-      return true
+  companion object {
+    /**
+     * Generates a random identifier for Kafka client metadata.
+     *
+     * Removes hyphen characters to comply with common Kafka naming conventions.
+     *
+     * @return Random identifier string
+     */
+    @JvmStatic
+    fun uuid(): String {
+      return UUID.randomUUID().toString().replace("-", "")
     }
-
-    fun appendConfig(config: Map<String, Any?>?, require: Boolean = false) {
-      if (config == null || config.isEmpty()) return
-      for (prefix in listOf(configType.prefix, null)) {
-        for (destKey in configType.propertyNames) {
-          if (!require && configProperties.containsKey(destKey)) {
-            continue
-          }
-          val sourceKey = prefix?.let { "$it.$destKey" } ?: destKey
-          for (value in config.lookup(sourceKey)) {
-            if (appendConfigValue(destKey, value, require)) {
-              break
-            }
-          }
-        }
-      }
-    }
-
-    for (config in configs.reversed()) {
-      appendConfig(config)
-    }
-    appendConfig(configType.configProperties, true)
-    this.requiredProperties.forEach { (k, v) -> appendConfigValue(k, v, true) }
-    return configProperties
   }
 
   /**
@@ -161,39 +129,4 @@ class KafkaService(kafkaProperties: KafkaProperties) {
   @ConfigurationProperties(prefix = "kafka")
   @Component
   class KafkaProperties : LinkedHashMap<String, Any>()
-
-  private enum class ConfigType(
-      configType: KClass<out AbstractConfig>,
-      val prefix: String,
-      val configProperties: Map<String, Any>,
-  ) {
-    PRODUCER(
-        ProducerConfig::class,
-        "producer",
-        mapOf(
-            ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG to BytesSerializer::class.java.name,
-            ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG to BytesSerializer::class.java.name,
-        ),
-    ),
-    CONSUMER(
-        ConsumerConfig::class,
-        "consumer",
-        mapOf(
-            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to BytesDeserializer::class.java.name,
-            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to BytesDeserializer::class.java.name,
-        ),
-    );
-
-    val propertyNames =
-        configType.java.fields
-            .filter { field ->
-              Modifier.isPublic(field.modifiers) &&
-                  Modifier.isStatic(field.modifiers) &&
-                  Modifier.isFinal(field.modifiers)
-            }
-            .filter { field -> String::class.java.isAssignableFrom(field.type) }
-            .filter { field -> field.name.endsWith("_CONFIG") }
-            .map { field -> field.get(null) as String }
-            .toList()
-  }
 }

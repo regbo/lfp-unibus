@@ -141,7 +141,11 @@ class KafkaWebSocketHandler(
       topic: String,
       msg: String,
   ): List<SenderRecord<Bytes, Bytes, *>> {
-    return ProducerData.Companion.read(objectMapper, topic, msg).map { it.toSenderRecord<Any>() }
+    val requestId = KafkaService.uuid()
+    return ProducerData.read(objectMapper, topic, msg).map {
+      val correlationMetadata = mapOf("recordId" to KafkaService.uuid(), "requestId" to requestId)
+      it.toSenderRecord(correlationMetadata)
+    }
   }
 
   /**

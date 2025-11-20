@@ -39,7 +39,7 @@ class HeaderJsonDeserializer : JsonDeserializer<Header>() {
     }
   }
 
-  private fun deserialize(p: JsonParser, ctxt: DeserializationContext, node: JsonNode): Header? {
+  private fun deserialize(p: JsonParser, ctxt: DeserializationContext, node: JsonNode): Header {
     if (node.isArray) {
       if (node.size() <= 2) {
         val key = get(node, 0)
