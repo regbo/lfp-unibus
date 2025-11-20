@@ -76,6 +76,17 @@ class KafkaWebSocketHandler(
         .flatMap { handle(session, uri, topic) }
   }
 
+  /**
+   * Performs the main producer/consumer bridging for an established session.
+   *
+   * Reads query parameters to configure Kafka producers/consumers, enforces mutually exclusive
+   * producer/consumer toggles, and wires the appropriate reactive flows.
+   *
+   * @param session Established WebSocket session
+   * @param uri Parsed URI components for parameter inspection
+   * @param topic Kafka topic validated earlier in the handshake
+   * @return Mono completing when the session terminates
+   */
   private fun handle(session: WebSocketSession, uri: UriComponents, topic: String): Mono<Void> {
 
     fun queryParamBoolean(name: String): Boolean? {
