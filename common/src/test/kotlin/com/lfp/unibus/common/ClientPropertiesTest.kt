@@ -1,5 +1,6 @@
 package com.lfp.unibus.common
 
+import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.common.serialization.BytesDeserializer
@@ -76,5 +77,27 @@ class ClientPropertiesTest {
 
     assertEquals("group-1", props[ConsumerConfig.GROUP_ID_CONFIG])
     assertFalse(props.containsKey("producer.unknown.prop"))
+  }
+
+  @Test
+  fun `later property maps override earlier ones`() {
+    val props =
+        ClientProperties.PRODUCER.get(
+            mapOf(ProducerConfig.LINGER_MS_CONFIG to "10"),
+            mapOf(ProducerConfig.LINGER_MS_CONFIG to "20"),
+        )
+
+    assertEquals("20", props[ProducerConfig.LINGER_MS_CONFIG])
+  }
+
+  @Test
+  fun `default identifiers added when missing`() {
+    val props = ClientProperties.CONSUMER.get(emptyMap())
+
+    val clientId = props[CommonClientConfigs.CLIENT_ID_CONFIG] as String
+    val groupId = props[ConsumerConfig.GROUP_ID_CONFIG] as String
+
+    assertTrue(clientId.startsWith("unibus."))
+    assertTrue(groupId.startsWith("unibus."))
   }
 }
