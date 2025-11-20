@@ -92,7 +92,7 @@ class ClientPropertiesTest {
 
   @Test
   fun `default identifiers added when missing`() {
-    val props = ClientProperties.CONSUMER.get(emptyMap())
+    val props = ClientProperties.CONSUMER.get()
 
     val clientId = props[CommonClientConfigs.CLIENT_ID_CONFIG] as String
     val groupId = props[ConsumerConfig.GROUP_ID_CONFIG] as String
