@@ -23,15 +23,16 @@ import java.util.concurrent.ConcurrentHashMap
 /**
  * MQTT handler that bridges MQTT connections to Apache Kafka.
  *
- * Handles MQTT connections and translates MQTT PUBLISH/SUBSCRIBE operations into Kafka
- * producer/consumer operations. MQTT topics map directly to Kafka topics.
+ * Handles MQTT connections and translates MQTT PUBLISH and SUBSCRIBE operations into Kafka
+ * producer and consumer operations. MQTT topics map directly to Kafka topics, enabling seamless
+ * bidirectional messaging between MQTT clients and Kafka.
  *
- * Features:
- * - MQTT PUBLISH messages are forwarded to Kafka as producer records
- * - MQTT SUBSCRIBE messages set up Kafka consumers that publish to MQTT topics
- * - Bidirectional communication: Kafka consumer records are published to MQTT subscribers
+ * Key features include forwarding MQTT PUBLISH messages to Kafka as producer records, spinning up
+ * Kafka consumers for MQTT SUBSCRIBE requests, and relaying Kafka consumer records back to the MQTT
+ * subscribers that originated the request.
  *
- * @param kafkaOptions Map of Kafka configuration options from environment properties
+ * @param kafkaService Kafka service used to create producers and consumers
+ * @param kafkaConfig Kafka service that provides client configuration properties
  */
 @ChannelHandler.Sharable
 @Component
@@ -76,7 +77,7 @@ class KafkaMqttHandler(
     super.channelInactive(ctx)
   }
 
-    /**
+  /**
    * Handles incoming MQTT messages.
    *
    * Routes messages to appropriate handlers based on message type (CONNECT, PUBLISH, SUBSCRIBE, etc.).
@@ -195,8 +196,6 @@ class KafkaMqttHandler(
         packetId,
         topicSubscriptions.map { it.topicName() },
     )
-
-      getClientId(ctx)
 
     topicSubscriptions.forEach { subscription ->
       val mqttTopic = subscription.topicName()

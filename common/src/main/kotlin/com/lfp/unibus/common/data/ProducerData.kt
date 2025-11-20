@@ -13,6 +13,7 @@ import com.lfp.unibus.common.json.deserializer.HeaderJsonDeserializer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.header.Header
 import org.apache.kafka.common.utils.Bytes
+import org.slf4j.LoggerFactory
 import reactor.kafka.sender.SenderRecord
 
 /**
@@ -54,6 +55,7 @@ constructor(
   }
 
   companion object {
+    private val log = LoggerFactory.getLogger(ProducerData::class.java)
     @JvmStatic
     private val RECORD_FIELDS =
         listOf(
@@ -77,6 +79,18 @@ constructor(
       return read(mapper, topic, readTree(mapper, input), true)
     }
 
+    /**
+     * Recursively parses the provided JSON node into ProducerData instances.
+     *
+     * Arrays are flattened when `flatten` is true, objects that resemble a record structure are
+     * converted directly, and any other payload is treated as a raw value for the supplied topic.
+     *
+     * @param mapper ObjectMapper for JSON conversion
+     * @param topic Kafka topic name
+     * @param node Parsed JSON node (object, array, or primitive)
+     * @param flatten Whether to flatten top level arrays
+     * @return List of ProducerData instances derived from the node
+     */
     @JvmStatic
     private fun read(
         mapper: ObjectMapper,
@@ -91,7 +105,10 @@ constructor(
         (node as ObjectNode).put(ProducerData::topic.name, topic)
         val data =
             runCatching { mapper.convertValue(node, ProducerData::class.java) }
-                .onFailure { it.printStackTrace() }
+                .onFailure { error ->
+                  // Log conversion failures to aid debugging without interrupting batch processing.
+                  log.warn("Failed to convert JSON node into ProducerData for topic={}", topic, error)
+                }
                 .getOrNull()
         if (data != null) return listOf(data)
       }
@@ -108,6 +125,16 @@ constructor(
       )
     }
 
+    /**
+     * Parses raw JSON text into a JsonNode.
+     *
+     * Attempts to read structured JSON, but if parsing fails returns a text node so callers can
+     * treat the payload as a raw value.
+     *
+     * @param mapper ObjectMapper for parsing
+     * @param input Raw JSON string
+     * @return Parsed JsonNode or null when the input is blank
+     */
     @JvmStatic
     private fun readTree(mapper: ObjectMapper, input: String?): JsonNode? {
       val json = input?.trim()?.takeIf { it.isNotEmpty() }

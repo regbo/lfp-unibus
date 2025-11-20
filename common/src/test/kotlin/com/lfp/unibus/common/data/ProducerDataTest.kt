@@ -1,6 +1,9 @@
 package com.lfp.unibus.common.data
 
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.lfp.unibus.common.TestUtils
+import org.apache.kafka.common.header.Header
+import org.apache.kafka.common.header.internals.RecordHeader
 import org.apache.kafka.common.utils.Bytes
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
@@ -12,9 +15,7 @@ import org.junit.jupiter.api.Test
  */
 class ProducerDataTest {
 
-  /**
-   * Tests basic deserialization of ProducerData from JSON object.
-   */
+  /** Tests basic deserialization of ProducerData from JSON object. */
   @Test
   fun `deserialize ProducerData from JSON object`() {
     val json =
@@ -30,7 +31,8 @@ class ProducerDataTest {
             {"key": "header2", "value": "data:text/plain;base64,dmFsdWUy"}
           ]
         }
-        """.trimIndent()
+        """
+            .trimIndent()
 
     val deserialized = TestUtils.objectMapper.readValue(json, ProducerData::class.java)
 
@@ -48,9 +50,7 @@ class ProducerDataTest {
     assertEquals(2, deserialized.headers().toList().size)
   }
 
-  /**
-   * Tests deserialization with array format headers.
-   */
+  /** Tests deserialization with array format headers. */
   @Test
   fun `deserialize ProducerData with array format headers`() {
     val json =
@@ -62,7 +62,8 @@ class ProducerDataTest {
             ["header2", "dmFsdWUy"]
           ]
         }
-        """.trimIndent()
+        """
+            .trimIndent()
 
     val deserialized = TestUtils.objectMapper.readValue(json, ProducerData::class.java)
 
@@ -72,9 +73,7 @@ class ProducerDataTest {
     assertEquals("header2", deserialized.headers().toList()[1].key())
   }
 
-  /**
-   * Tests deserialization with null values.
-   */
+  /** Tests deserialization with null values. */
   @Test
   fun `deserialize ProducerData with null values`() {
     val json =
@@ -82,7 +81,8 @@ class ProducerDataTest {
         {
           "topic": "test-topic"
         }
-        """.trimIndent()
+        """
+            .trimIndent()
 
     val deserialized = TestUtils.objectMapper.readValue(json, ProducerData::class.java)
 
@@ -94,9 +94,7 @@ class ProducerDataTest {
     assertEquals(0, deserialized.headers().toList().size)
   }
 
-  /**
-   * Tests deserialization with data URL format.
-   */
+  /** Tests deserialization with data URL format. */
   @Test
   fun `deserialize ProducerData with data URL format`() {
     val json =
@@ -106,7 +104,8 @@ class ProducerDataTest {
           "key": "${TestUtils.imageDataUrl}",
           "value": "${TestUtils.imageDataUrl}"
         }
-        """.trimIndent()
+        """
+            .trimIndent()
 
     val deserialized = TestUtils.objectMapper.readValue(json, ProducerData::class.java)
 
@@ -122,9 +121,7 @@ class ProducerDataTest {
     assertEquals(true, valueBytes.size > 0)
   }
 
-  /**
-   * Tests ProducerData.read with array of objects.
-   */
+  /** Tests ProducerData.read with array of objects. */
   @Test
   fun `read ProducerData from array of objects`() {
     val json =
@@ -139,7 +136,8 @@ class ProducerDataTest {
             "value": "data:text/plain;base64,dGVzdC12YWx1ZTI="
           }
         ]
-        """.trimIndent()
+        """
+            .trimIndent()
 
     val data = ProducerData.read(TestUtils.objectMapper, "array-topic", json)
 
@@ -158,15 +156,14 @@ class ProducerDataTest {
     assertEquals("test-value2", value2String)
   }
 
-  /**
-   * Tests ProducerData.read with array of data URLs (value-only format).
-   */
+  /** Tests ProducerData.read with array of data URLs (value-only format). */
   @Test
   fun `read ProducerData from array of data URLs`() {
     val json =
         """
         ["${TestUtils.imageDataUrl}", "${TestUtils.imageDataUrl}"]
-        """.trimIndent()
+        """
+            .trimIndent()
 
     val data = ProducerData.read(TestUtils.objectMapper, "value-topic", json)
 
@@ -179,9 +176,7 @@ class ProducerDataTest {
     assertNotNull(data[1].value())
   }
 
-  /**
-   * Tests ProducerData.read with single object.
-   */
+  /** Tests ProducerData.read with single object. */
   @Test
   fun `read ProducerData from single object`() {
     val json =
@@ -190,7 +185,8 @@ class ProducerDataTest {
           "key": "data:text/plain;base64,dGVzdC1rZXk=",
           "value": "data:text/plain;base64,dGVzdC12YWx1ZQ=="
         }
-        """.trimIndent()
+        """
+            .trimIndent()
 
     val data = ProducerData.read(TestUtils.objectMapper, "single-topic", json)
 
@@ -200,9 +196,7 @@ class ProducerDataTest {
     assertEquals("test-value", String(data[0].value()!!.get()!!))
   }
 
-  /**
-   * Tests ProducerData.read with plain string value.
-   */
+  /** Tests ProducerData.read with plain string value. */
   @Test
   fun `read ProducerData from plain string value`() {
     val json = "\"plain-string-value\""
@@ -216,13 +210,11 @@ class ProducerDataTest {
     assertEquals("plain-string-value", String(data[0].value()!!.get()!!))
   }
 
-  /**
-   * Tests serialization of ProducerData to JSON.
-   */
+  /** Tests serialization of ProducerData to JSON. */
   @Test
   fun `serialize ProducerData to JSON`() {
     val producerData =
-        TestUtils.createProducerData(
+        createProducerData(
             topic = "serialize-topic",
             partition = 2,
             timestamp = 9876543210L,
@@ -230,8 +222,8 @@ class ProducerDataTest {
             value = Bytes.wrap("serialize-value".encodeToByteArray()),
             headers =
                 listOf(
-                    TestUtils.createHeader("s-header1", "s-value1"),
-                    TestUtils.createHeader("s-header2", "s-value2"),
+                    createHeader("s-header1", "s-value1"),
+                    createHeader("s-header2", "s-value2"),
                 ),
         )
 
@@ -243,13 +235,11 @@ class ProducerDataTest {
     assertEquals(true, json.startsWith("{") && json.endsWith("}"))
   }
 
-  /**
-   * Tests serialization with null values.
-   */
+  /** Tests serialization with null values. */
   @Test
   fun `serialize ProducerData with null values`() {
     val producerData =
-        TestUtils.createProducerData(
+        createProducerData(
             topic = "null-topic",
             partition = null,
             timestamp = null,
@@ -266,13 +256,11 @@ class ProducerDataTest {
     assertEquals(true, json.startsWith("{") && json.endsWith("}"))
   }
 
-  /**
-   * Tests round-trip serialization and deserialization.
-   */
+  /** Tests round-trip serialization and deserialization. */
   @Test
   fun `round-trip serialize and deserialize ProducerData`() {
     val original =
-        TestUtils.createProducerData(
+        createProducerData(
             topic = "round-trip-topic",
             partition = 3,
             timestamp = 1111111111L,
@@ -280,20 +268,21 @@ class ProducerDataTest {
             value = Bytes.wrap("rt-value".encodeToByteArray()),
             headers =
                 listOf(
-                    TestUtils.createHeader("rt-h1", "rt-v1"),
-                    TestUtils.createHeader("rt-h2", "rt-v2"),
+                    createHeader("rt-h1", "rt-v1"),
+                    createHeader("rt-h2", "rt-v2"),
                 ),
         )
 
     val json = TestUtils.objectMapper.writeValueAsString(original)
     // ProducerRecord may not serialize topic, so add it if missing for deserialization
     val jsonNode = TestUtils.objectMapper.readTree(json)
-    val jsonWithTopic = if (jsonNode is ObjectNode && !jsonNode.has("topic")) {
-      jsonNode.put("topic", "round-trip-topic")
-      TestUtils.objectMapper.writeValueAsString(jsonNode)
-    } else {
-      json
-    }
+    val jsonWithTopic =
+        if (jsonNode is ObjectNode && !jsonNode.has("topic")) {
+          jsonNode.put("topic", "round-trip-topic")
+          TestUtils.objectMapper.writeValueAsString(jsonNode)
+        } else {
+          json
+        }
     val deserialized = TestUtils.objectMapper.readValue(jsonWithTopic, ProducerData::class.java)
 
     // Verify deserialization succeeded
@@ -322,13 +311,11 @@ class ProducerDataTest {
     }
   }
 
-  /**
-   * Tests round-trip with null values.
-   */
+  /** Tests round-trip with null values. */
   @Test
   fun `round-trip serialize and deserialize ProducerData with null values`() {
     val original =
-        TestUtils.createProducerData(
+        createProducerData(
             topic = "null-rt-topic",
             partition = null,
             timestamp = null,
@@ -354,9 +341,7 @@ class ProducerDataTest {
     assertEquals(0, deserialized.headers().toList().size)
   }
 
-  /**
-   * Tests ProducerData.read with empty array.
-   */
+  /** Tests ProducerData.read with empty array. */
   @Test
   fun `read ProducerData from empty array`() {
     val json = "[]"
@@ -366,9 +351,7 @@ class ProducerDataTest {
     assertEquals(0, data.size)
   }
 
-  /**
-   * Tests ProducerData.read with null input.
-   */
+  /** Tests ProducerData.read with null input. */
   @Test
   fun `read ProducerData from null input`() {
     val data = ProducerData.read(TestUtils.objectMapper, "null-topic", null)
@@ -376,9 +359,7 @@ class ProducerDataTest {
     assertEquals(0, data.size)
   }
 
-  /**
-   * Tests ProducerData.read with empty string.
-   */
+  /** Tests ProducerData.read with empty string. */
   @Test
   fun `read ProducerData from empty string`() {
     val data = ProducerData.read(TestUtils.objectMapper, "empty-topic", "")
@@ -386,9 +367,7 @@ class ProducerDataTest {
     assertEquals(0, data.size)
   }
 
-  /**
-   * Tests ProducerData.read with whitespace-only string.
-   */
+  /** Tests ProducerData.read with whitespace-only string. */
   @Test
   fun `read ProducerData from whitespace-only string`() {
     val data = ProducerData.read(TestUtils.objectMapper, "whitespace-topic", "   ")
@@ -396,9 +375,7 @@ class ProducerDataTest {
     assertEquals(0, data.size)
   }
 
-  /**
-   * Tests deserialization with object format headers (key-value pairs).
-   */
+  /** Tests deserialization with object format headers (key-value pairs). */
   @Test
   fun `deserialize ProducerData with object format headers`() {
     val json =
@@ -410,7 +387,8 @@ class ProducerDataTest {
             {"key": "obj-header2", "value": "dmFsdWUy"}
           ]
         }
-        """.trimIndent()
+        """
+            .trimIndent()
 
     val deserialized = TestUtils.objectMapper.readValue(json, ProducerData::class.java)
 
@@ -420,9 +398,7 @@ class ProducerDataTest {
     assertEquals("obj-header2", deserialized.headers().toList()[1].key())
   }
 
-  /**
-   * Tests deserialization with single-key object format headers.
-   */
+  /** Tests deserialization with single-key object format headers. */
   @Test
   fun `deserialize ProducerData with single-key object format headers`() {
     val json =
@@ -433,7 +409,8 @@ class ProducerDataTest {
             {"customKey": "dmFsdWUx"}
           ]
         }
-        """.trimIndent()
+        """
+            .trimIndent()
 
     val deserialized = TestUtils.objectMapper.readValue(json, ProducerData::class.java)
 
@@ -442,14 +419,12 @@ class ProducerDataTest {
     assertEquals("customKey", deserialized.headers().toList()[0].key())
   }
 
-  /**
-   * Tests serialization with binary data (non-UTF8).
-   */
+  /** Tests serialization with binary data (non-UTF8). */
   @Test
   fun `serialize ProducerData with binary data`() {
     val binaryData = byteArrayOf(0x00, 0x01, 0x02, 0xFF.toByte(), 0xFE.toByte())
     val producerData =
-        TestUtils.createProducerData(
+        createProducerData(
             key = Bytes.wrap(binaryData),
             value = Bytes.wrap(binaryData),
         )
@@ -461,13 +436,11 @@ class ProducerDataTest {
     assertEquals(true, json.contains("data:") || json.contains("base64") || json.length > 0)
   }
 
-  /**
-   * Tests toSenderRecord conversion.
-   */
+  /** Tests toSenderRecord conversion. */
   @Test
   fun `convert ProducerData to SenderRecord`() {
     val producerData =
-        TestUtils.createProducerData(
+        createProducerData(
             topic = "sender-topic",
             key = Bytes.wrap("sender-key".encodeToByteArray()),
             value = Bytes.wrap("sender-value".encodeToByteArray()),
@@ -482,13 +455,11 @@ class ProducerDataTest {
     TestUtils.assertBytesEquals(producerData.value(), senderRecord.value())
   }
 
-  /**
-   * Tests toSenderRecord with correlation metadata.
-   */
+  /** Tests toSenderRecord with correlation metadata. */
   @Test
   fun `convert ProducerData to SenderRecord with correlation metadata`() {
     val producerData =
-        TestUtils.createProducerData(
+        createProducerData(
             topic = "correlation-topic",
         )
 
@@ -497,5 +468,45 @@ class ProducerDataTest {
 
     assertNotNull(senderRecord)
     assertEquals(metadata, senderRecord.correlationMetadata())
+  }
+
+  /**
+   * Creates a test ProducerData instance with default values.
+   *
+   * @param topic Topic name (default: "test-topic")
+   * @param partition Optional partition number
+   * @param timestamp Optional timestamp value
+   * @param key Optional key bytes
+   * @param value Optional value bytes
+   * @param headers Optional headers list
+   * @return ProducerData instance
+   */
+  fun createProducerData(
+      topic: String = "test-topic",
+      partition: Int? = null,
+      timestamp: Long? = null,
+      key: Bytes? = null,
+      value: Bytes? = null,
+      headers: Collection<Header?>? = null,
+  ): ProducerData {
+    return ProducerData(
+        topic = topic,
+        partition = partition,
+        timestamp = timestamp,
+        key = key,
+        value = value,
+        headers = headers,
+    )
+  }
+
+  /**
+   * Creates a test RecordHeader instance from string value.
+   *
+   * @param key Header key
+   * @param value Header value as string
+   * @return RecordHeader instance
+   */
+  fun createHeader(key: String, value: String): RecordHeader {
+    return RecordHeader(key, value.encodeToByteArray())
   }
 }

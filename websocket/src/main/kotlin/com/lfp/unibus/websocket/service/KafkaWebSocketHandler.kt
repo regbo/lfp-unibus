@@ -62,6 +62,22 @@ class KafkaWebSocketHandler(
 
     val uri = UriComponentsBuilder.fromUri(session.handshakeInfo.uri).build()
 
+    fun queryParamBoolean(name: String): Boolean? {
+      return uri.queryParams.getFirst(name)?.let {
+        conversionService.convert(it, Boolean::class.java)
+      }
+    }
+
+    val consumerEnabled = queryParamBoolean("consumer") ?: true
+    val producerEnabled = queryParamBoolean("producer") ?: true
+    val producerResultEnabled = queryParamBoolean("producer.result") ?: true
+
+    if (!producerEnabled && !consumerEnabled) {
+      return session.close(
+          CloseStatus.POLICY_VIOLATION.withReason("producer and consumer cannot both be false")
+      )
+    }
+
     val topic = uri.pathSegments.filter { !it.isEmpty() }.joinToString("_")
     if (topic.isEmpty()) {
       return session.close(CloseStatus.POLICY_VIOLATION.withReason("topic is required"))
@@ -73,84 +89,100 @@ class KafkaWebSocketHandler(
                 .close(CloseStatus.POLICY_VIOLATION.withReason("topic does not exist"))
                 .then(Mono.empty())
         )
-        .flatMap { handle(session, uri, topic) }
+        .flatMap {
+          val consumeFlow =
+              if (consumerEnabled) {
+                handleConsume(session, uri, topic)
+              } else {
+                Mono.empty()
+              }
+          val produceFlow =
+              if (producerEnabled) {
+                handleProduce(session, uri, topic, producerResultEnabled)
+              } else {
+                session
+                    .receive()
+                    .doOnNext { log.debug("Discarded WebSocket message for topic={}", topic) }
+                    .then()
+              }
+          return@flatMap Mono.`when`(produceFlow, consumeFlow).doFinally {
+            log.info(
+                "Closing WebSocket for topic={} ( consumer={} producer={} producerResult={})",
+                topic,
+                consumerEnabled,
+                producerEnabled,
+                producerResultEnabled,
+            )
+          }
+        }
   }
 
   /**
-   * Performs the main producer/consumer bridging for an established session.
+   * Streams Kafka consumer records back to the WebSocket client.
    *
-   * Reads query parameters to configure Kafka producers/consumers, enforces mutually exclusive
-   * producer/consumer toggles, and wires the appropriate reactive flows.
+   * Creates a consumer using URI query parameters and forwards each record as JSON payloads until
+   * the WebSocket closes or an error occurs.
    *
-   * @param session Established WebSocket session
-   * @param uri Parsed URI components for parameter inspection
-   * @param topic Kafka topic validated earlier in the handshake
-   * @return Mono completing when the session terminates
+   * @param session Active WebSocket session
+   * @param uri Parsed URI for extracting Kafka overrides
+   * @param topic Validated Kafka topic name
+   * @return Mono completing when the consumer stream terminates
    */
-  private fun handle(session: WebSocketSession, uri: UriComponents, topic: String): Mono<Void> {
+  private fun handleConsume(
+      session: WebSocketSession,
+      uri: UriComponents,
+      topic: String,
+  ): Mono<Void> {
+    val consumer = kafkaService.consumer(topic, uri.queryParams.asSingleValueMap())
+    val consumerPayloads =
+        consumer
+            .receive()
+            .takeUntilOther(session.closeStatus().then())
+            .map { record -> toConsumerPayload(PayloadType.RECORD, record) }
+            .map { session.textMessage(it) }
+            .onErrorResume { e ->
+              log.error("consumer error", e)
+              Mono.error(e)
+            }
 
-    fun queryParamBoolean(name: String): Boolean? {
-      return uri.queryParams.getFirst(name)?.let {
-        conversionService.convert(it, Boolean::class.java)
-      }
-    }
+    return session.send(consumerPayloads)
+  }
 
-    val producerEnabled = queryParamBoolean("producer") ?: true
-    val producerResultEnabled = queryParamBoolean("producer.result") ?: true
-    val consumerEnabled = queryParamBoolean("consumer") ?: true
-    if (!producerEnabled && !consumerEnabled) {
-      return session.close(
-          CloseStatus.POLICY_VIOLATION.withReason("producer and consumer cannot both be false")
-      )
-    }
-    val consumeFlow =
-        if (consumerEnabled) {
-          val consumer = kafkaService.consumer(topic, uri.queryParams.asSingleValueMap())
-          val consumerPayloads =
-              consumer
-                  .receive()
-                  .takeUntilOther(session.closeStatus().then())
-                  .map { record -> toConsumerPayload(PayloadType.RECORD, record) }
-                  .map { session.textMessage(it) }
-                  .onErrorResume { e ->
-                    log.error("consumer error", e)
-                    Mono.error(e)
-                  }
+  /**
+   * Streams WebSocket messages to Kafka as producer records.
+   *
+   * Creates a Kafka producer per session, transforms incoming frames into SenderRecords, and
+   * optionally echoes `RESULT` payloads back to the client when producer result reporting is
+   * enabled.
+   *
+   * @param session Active WebSocket session
+   * @param uri Parsed URI for extracting Kafka overrides
+   * @param topic Kafka topic name derived from the request path
+   * @param producerResultEnabled Flag controlling producer result echoing
+   * @return Mono completing when producer flow terminates
+   */
+  private fun handleProduce(
+      session: WebSocketSession,
+      uri: UriComponents,
+      topic: String,
+      producerResultEnabled: Boolean,
+  ): Mono<Void> {
+    val producer = kafkaService.producer(uri.queryParams.asSingleValueMap())
+    val resultPayloads =
+        session
+            .receive()
+            .takeUntilOther(session.closeStatus().then())
+            .flatMapIterable { msg -> toSenderRecords(topic, msg.payloadAsText) }
+            .flatMap { record -> producer.send(Mono.just(record)) }
+            .filter { producerResultEnabled }
+            .mapNotNull { result -> toConsumerPayload(PayloadType.RESULT, result) }
+            .map { session.textMessage(it) }
+            .onErrorResume { e ->
+              log.error("producer error", e)
+              Mono.error(e)
+            }
 
-          session.send(consumerPayloads)
-        } else {
-          Mono.empty()
-        }
-    val produceFlow =
-        if (producerEnabled) {
-          val producer = kafkaService.producer(uri.queryParams.asSingleValueMap())
-          val resultPayloads =
-              session
-                  .receive()
-                  .takeUntilOther(session.closeStatus().then())
-                  .flatMapIterable { msg -> toSenderRecords(topic, msg.payloadAsText) }
-                  .flatMap { record -> producer.send(Mono.just(record)) }
-                  .filter { producerResultEnabled }
-                  .mapNotNull { result -> toConsumerPayload(PayloadType.RESULT, result) }
-                  .map { session.textMessage(it) }
-                  .onErrorResume { e ->
-                    log.error("producer error", e)
-                    Mono.error(e)
-                  }
-
-          session.send(resultPayloads).doFinally { producer.close() }
-        } else {
-          session
-              .receive()
-              .doOnNext { println("Discarded WebSocket message for topic=$topic") }
-              .then()
-        }
-
-    return Mono.`when`(produceFlow, consumeFlow).doFinally {
-      println(
-          "Closing WebSocket for topic=$topic (producer=$producerEnabled consumer=$consumerEnabled)"
-      )
-    }
+    return session.send(resultPayloads).doFinally { producer.close() }
   }
 
   /**

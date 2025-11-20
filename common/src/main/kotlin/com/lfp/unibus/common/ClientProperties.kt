@@ -140,7 +140,7 @@ enum class ClientProperties(
   internal open fun modifyProperties(config: MutableMap<String, Any>) {
     config.computeIfAbsent(
         CommonClientConfigs.CLIENT_ID_CONFIG,
-        { "$ID_PREFIX.$keyPrefix}client.${KafkaService.uuid()}" },
+        { "$ID_PREFIX.${keyPrefix}client.${KafkaService.uuid()}" },
     )
   }
 

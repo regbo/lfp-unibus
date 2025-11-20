@@ -1,5 +1,6 @@
 package com.lfp.unibus.common.data
 
+import com.lfp.unibus.common.TestUtils
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull

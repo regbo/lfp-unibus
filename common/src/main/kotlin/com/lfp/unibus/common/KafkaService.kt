@@ -67,10 +67,13 @@ class KafkaService(kafkaProperties: KafkaProperties) {
   /**
    * Creates ProducerConfig with optional property overrides.
    *
-   * @param props Optional property overrides (can be prefixed with "producer.")
+   * Later maps override earlier ones, and keys may be prefixed with `producer.` to scope them
+   * specifically to producer clients.
+   *
+   * @param configs Optional property maps; null entries are ignored
    * @return Configured ProducerConfig instance
    */
-  fun producerConfigProperties(vararg configs: Map<String, Any?>??): Map<String, Any> {
+  fun producerConfigProperties(vararg configs: Map<String, Any?>?): Map<String, Any> {
     return clientProperties(
         ClientProperties.PRODUCER,
         *configs,
@@ -80,20 +83,23 @@ class KafkaService(kafkaProperties: KafkaProperties) {
   /**
    * Creates a Kafka sender for producing messages.
    *
-   * @param config Producer configuration
+   * @param configs Optional property overrides (can be prefixed with `producer.`)
    * @return KafkaSender instance
    */
-  fun producer(vararg configs: Map<String, Any?>??): KafkaSender<Bytes, Bytes> {
+  fun producer(vararg configs: Map<String, Any?>?): KafkaSender<Bytes, Bytes> {
     return KafkaSender.create(SenderOptions.create(producerConfigProperties(*configs)))
   }
 
   /**
    * Creates ConsumerConfig with optional property overrides.
    *
-   * @param props Optional property overrides (can be prefixed with "consumer.")
+   * Later maps override earlier ones, and keys may be prefixed with `consumer.` to scope them
+   * to consumer clients.
+   *
+   * @param configs Optional property maps; null entries are ignored
    * @return Configured ConsumerConfig instance
    */
-  fun consumerConfigProperties(vararg configs: Map<String, Any?>??): Map<String, Any> {
+  fun consumerConfigProperties(vararg configs: Map<String, Any?>?): Map<String, Any> {
     return clientProperties(
         ClientProperties.CONSUMER,
         *configs,
@@ -119,11 +125,10 @@ class KafkaService(kafkaProperties: KafkaProperties) {
   /**
    * Creates a Kafka receiver for consuming messages.
    *
-   * Uses subscription if group ID is set, otherwise uses partition assignment.
+   * Uses subscription if group ID is set, otherwise falls back to partition assignment.
    *
-   * @param config Consumer configuration
-   * @param topic Primary topic to consume from
-   * @param topics Additional topics to consume from
+   * @param topics Collection of topics to subscribe to
+   * @param configs Optional property overrides (can be prefixed with `consumer.`)
    * @return KafkaReceiver instance
    */
   fun consumer(
@@ -136,6 +141,16 @@ class KafkaService(kafkaProperties: KafkaProperties) {
     return KafkaReceiver.create(receiverOptions)
   }
 
+  /**
+   * Builds an immutable map of client properties for the requested client type.
+   *
+   * Later property maps override earlier ones. Prefixed keys (for example `consumer.acks`) are
+   * resolved to their scoped counterparts before merging with the base application configuration.
+   *
+   * @param clientProperties Target client type (producer or consumer)
+   * @param configs Optional property maps to merge
+   * @return Immutable configuration map ready for Kafka clients
+   */
   private fun clientProperties(
       clientProperties: ClientProperties,
       vararg configs: Map<String, Any?>?,
