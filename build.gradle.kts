@@ -26,7 +26,7 @@ subprojects {
   dependencies {
     // main
     add("implementation", platform(libs.spring.boot.dependencies))
-
+    add("implementation", "org.springframework.boot:spring-boot-starter-logging")
     // test
     add("testImplementation", "org.jetbrains.kotlin:kotlin-test-junit5")
     add("testImplementation", libs.junit.jupiter.engine)
