@@ -11,6 +11,15 @@ import org.apache.kafka.common.header.Header
  * Serializes as object with "key" and "value" fields.
  */
 class HeaderJsonSerializer : JsonSerializer<Header>() {
+  /**
+   * Serializes Kafka Header to JSON object.
+   *
+   * Outputs an object with "key" (string) and "value" (serialized according to value type) fields.
+   *
+   * @param value Header to serialize
+   * @param gen JSON generator
+   * @param serializers Serializer provider
+   */
   override fun serialize(value: Header, gen: JsonGenerator, serializers: SerializerProvider) {
     gen.writeStartObject()
     gen.writeFieldName("key")

@@ -51,11 +51,25 @@ class KafkaMqttHandler(
   /** Map of MQTT client ID to channel context for publishing messages back to MQTT clients. */
   private val clientChannels = ConcurrentHashMap<String, ChannelHandlerContext>()
 
+  /**
+   * Called when a channel becomes active.
+   *
+   * Logs the connection and calls the parent handler.
+   *
+   * @param ctx Channel handler context
+   */
   override fun channelActive(ctx: ChannelHandlerContext) {
     logger.debug("MQTT client connected: {}", ctx.channel().remoteAddress())
     super.channelActive(ctx)
   }
 
+  /**
+   * Called when a channel becomes inactive.
+   *
+   * Logs the disconnection, cleans up client resources, and calls the parent handler.
+   *
+   * @param ctx Channel handler context
+   */
   override fun channelInactive(ctx: ChannelHandlerContext) {
     logger.debug("MQTT client disconnected: {}", ctx.channel().remoteAddress())
     cleanupClient(ctx)
@@ -66,6 +80,14 @@ class KafkaMqttHandler(
     return super.acceptInboundMessage(msg)
   }
 
+  /**
+   * Handles incoming MQTT messages.
+   *
+   * Routes messages to appropriate handlers based on message type (CONNECT, PUBLISH, SUBSCRIBE, etc.).
+   *
+   * @param ctx Channel handler context
+   * @param msg MQTT message to handle
+   */
   override fun channelRead0(ctx: ChannelHandlerContext?, msg: MqttMessage?) {
     if (ctx != null) {
       try {
@@ -351,6 +373,14 @@ class KafkaMqttHandler(
     logger.debug("Cleaned up resources for client: {}", clientId)
   }
 
+  /**
+   * Handles exceptions thrown during message processing.
+   *
+   * Logs the error, cleans up client resources, and closes the channel.
+   *
+   * @param ctx Channel handler context
+   * @param cause Exception that was thrown
+   */
   override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) {
     logger.error("Exception in MQTT handler", cause)
     cleanupClient(ctx)

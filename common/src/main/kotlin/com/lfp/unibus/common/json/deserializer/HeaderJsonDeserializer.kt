@@ -14,6 +14,16 @@ import org.apache.kafka.common.header.internals.RecordHeader
  * Supports array format [key, value] or object format {"key": "...", "value": ...}.
  */
 class HeaderJsonDeserializer : JsonDeserializer<Header>() {
+  /**
+   * Deserializes Kafka Header from JSON parser.
+   *
+   * Supports array format [key, value] or object format {"key": "...", "value": ...}.
+   * Also supports single-key object format {"key": "value"}.
+   *
+   * @param p JSON parser
+   * @param ctxt Deserialization context
+   * @return Deserialized Header instance or null
+   */
   override fun deserialize(p: JsonParser, ctxt: DeserializationContext): Header? {
     return when (p.currentToken()) {
       JsonToken.VALUE_NULL -> null

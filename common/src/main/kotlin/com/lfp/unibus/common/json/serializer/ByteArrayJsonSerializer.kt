@@ -20,6 +20,15 @@ import org.springframework.http.MediaType
  */
 class ByteArrayJsonSerializer : JsonSerializer<ByteArray>() {
 
+  /**
+   * Serializes ByteArray to JSON.
+   *
+   * Attempts to decode as UTF-8 text or parse as JSON. If both fail, serializes as data URL.
+   *
+   * @param value ByteArray to serialize
+   * @param gen JSON generator
+   * @param serializers Serializer provider
+   */
   override fun serialize(value: ByteArray, gen: JsonGenerator, serializers: SerializerProvider) {
     val binaryNode =
         runCatching { DECODER.decode(ByteBuffer.wrap(value)) }

@@ -21,6 +21,14 @@ import reactor.kafka.sender.SenderResult
 @Configuration
 class JsonSerializers {
 
+  /**
+   * Creates and configures Jackson module with custom serializers.
+   *
+   * Registers serializers for ByteArray, Bytes, Header, Headers, ConsumerRecord,
+   * SenderResult, and RecordMetadata types.
+   *
+   * @return Configured Module instance
+   */
   @Bean
   fun module(): Module {
     val m = SimpleModule()

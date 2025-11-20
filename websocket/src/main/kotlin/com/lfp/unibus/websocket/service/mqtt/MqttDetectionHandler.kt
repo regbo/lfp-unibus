@@ -44,6 +44,16 @@ class MqttDetectionHandler(val kafkaMqttHandler: KafkaMqttHandler) : ByteToMessa
           "kafkaMqttHandler" to kafkaMqttHandler,
       )
 
+  /**
+   * Decodes incoming bytes to detect MQTT protocol.
+   *
+   * Inspects the first byte to determine if the connection is MQTT or HTTP. If MQTT is detected,
+   * configures the pipeline with MQTT handlers. Otherwise, leaves the pipeline for HTTP handling.
+   *
+   * @param ctx Channel handler context
+   * @param input Byte buffer containing incoming data
+   * @param out Output list for decoded messages (not used in this implementation)
+   */
   override fun decode(ctx: ChannelHandlerContext, input: ByteBuf, out: MutableList<Any>) {
 
     if (!input.isReadable) return

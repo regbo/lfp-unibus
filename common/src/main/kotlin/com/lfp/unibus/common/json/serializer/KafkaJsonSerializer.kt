@@ -47,8 +47,15 @@ class KafkaJsonSerializer<T : Any>(cls: KClass<T>) : StdSerializer<T>(cls.java) 
     return@lazy props
   }
 
+  /**
+   * Serializes a Kafka object to JSON by reflecting over its properties and methods.
+   *
+   * @param value Object to serialize
+   * @param gen JSON generator
+   * @param serializers Serializer provider
+   */
   override fun serialize(value: T, gen: JsonGenerator, serializers: SerializerProvider) {
-    var props = handledTypeProperties.value
+    val props = handledTypeProperties.value
     gen.writeStartObject()
     for (prop in props) {
       gen.writeFieldName(prop.first)
