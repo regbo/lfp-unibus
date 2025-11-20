@@ -80,6 +80,9 @@ Use the official documentation to look up every available setting:
 [`Producer Configs`](https://kafka.apache.org/documentation/#producerconfigs) |
 [`Consumer Configs`](https://kafka.apache.org/documentation/#consumerconfigs)
 
+Only a vetted subset of properties can be overridden to keep connections portable. When a key is
+prefixed with `consumer.` or `producer.`, that value wins over the generic form.
+
 #### URL Components
 
 - **Path Segments**: The topic name is derived from URL path segments, joined with underscores
@@ -118,6 +121,27 @@ ws://localhost:8888/my-topic?producer.client.id=my-producer
 ```
 ws://localhost:8888/my-topic?producer.result=false
 ```
+
+### Whitelisted Kafka Configs
+
+Each client receives safe defaults (`BytesSerializer` / `BytesDeserializer` and auto-generated
+`client.id` / `group.id`). The following Kafka properties can be overridden via query parameters:
+
+**Consumer**
+- `client.id`
+- `group.id`
+- `auto.offset.reset`
+- `enable.auto.commit`
+- `partition.assignment.strategy`
+- `exclude.internal.topics`
+- `client.rack`
+
+**Producer**
+- `client.id`
+- `acks`
+- `compression.type`
+- `enable.idempotence`
+- `transactional.id`
 
 ## Message Formats
 

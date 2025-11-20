@@ -1,6 +1,5 @@
 package com.lfp.unibus.common
 
-import com.lfp.unibus.common.KafkaService.Companion.uuid
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -48,34 +47,6 @@ enum class ClientProperties(
           // @see ConsumerConfig.EXCLUDE_INTERNAL_TOPICS_DOC
           ConsumerConfig.EXCLUDE_INTERNAL_TOPICS_CONFIG,
 
-          // Configures custom metric reporters
-          // @see ConsumerConfig.METRIC_REPORTER_CLASSES_DOC
-          ConsumerConfig.METRIC_REPORTER_CLASSES_CONFIG,
-
-          // Number of metric samples to keep
-          // @see ConsumerConfig.METRICS_NUM_SAMPLES_DOC
-          ConsumerConfig.METRICS_NUM_SAMPLES_CONFIG,
-
-          // Time window for metric collection
-          // @see ConsumerConfig.METRICS_SAMPLE_WINDOW_MS_DOC
-          ConsumerConfig.METRICS_SAMPLE_WINDOW_MS_CONFIG,
-
-          // Idle time before a connection is closed
-          // @see ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_DOC
-          ConsumerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG,
-
-          // Maximum request wait time
-          // @see ConsumerConfig.REQUEST_TIMEOUT_MS_DOC
-          ConsumerConfig.REQUEST_TIMEOUT_MS_CONFIG,
-
-          // Delay before retry attempts
-          // @see ConsumerConfig.RETRY_BACKOFF_MS_DOC
-          ConsumerConfig.RETRY_BACKOFF_MS_CONFIG,
-
-          // Delay before reconnect attempts
-          // @see ConsumerConfig.RECONNECT_BACKOFF_MS_DOC
-          ConsumerConfig.RECONNECT_BACKOFF_MS_CONFIG,
-
           // Identifies the rack for locality aware fetch
           // @see ConsumerConfig.CLIENT_RACK_DOC
           ConsumerConfig.CLIENT_RACK_CONFIG,
@@ -90,7 +61,7 @@ enum class ClientProperties(
       super.modifyProperties(config)
       config.computeIfAbsent(
           ConsumerConfig.GROUP_ID_CONFIG,
-          { "${ID_PREFIX}.${keyPrefix}group.${uuid()}" },
+          { "${ID_PREFIX}.${keyPrefix}group.${KafkaService.uuid()}" },
       )
     }
   },
@@ -119,38 +90,6 @@ enum class ClientProperties(
           // Unique transaction id
           // @see ProducerConfig.TRANSACTIONAL_ID_DOC
           ProducerConfig.TRANSACTIONAL_ID_CONFIG,
-
-          // Time to collect additional records before send
-          // @see ProducerConfig.LINGER_MS_DOC
-          ProducerConfig.LINGER_MS_CONFIG,
-
-          // Upper bound for record delivery time
-          // @see ProducerConfig.DELIVERY_TIMEOUT_MS_DOC
-          ProducerConfig.DELIVERY_TIMEOUT_MS_CONFIG,
-
-          // Maximum time producer waits for metadata
-          // @see ProducerConfig.MAX_BLOCK_MS_DOC
-          ProducerConfig.MAX_BLOCK_MS_CONFIG,
-
-          // Number of retry attempts
-          // @see ProducerConfig.RETRIES_DOC
-          ProducerConfig.RETRIES_CONFIG,
-
-          // Delay before retry attempts
-          // @see ProducerConfig.RETRY_BACKOFF_MS_DOC
-          ProducerConfig.RETRY_BACKOFF_MS_CONFIG,
-
-          // Delay before reconnect attempts
-          // @see ProducerConfig.RECONNECT_BACKOFF_MS_DOC
-          ProducerConfig.RECONNECT_BACKOFF_MS_CONFIG,
-
-          // Idle time before a connection is closed
-          // @see ProducerConfig.CONNECTIONS_MAX_IDLE_MS_DOC
-          ProducerConfig.CONNECTIONS_MAX_IDLE_MS_CONFIG,
-
-          // Maximum request wait time
-          // @see ProducerConfig.REQUEST_TIMEOUT_MS_DOC
-          ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG,
       ),
   );
 
@@ -201,7 +140,7 @@ enum class ClientProperties(
   internal open fun modifyProperties(config: MutableMap<String, Any>) {
     config.computeIfAbsent(
         CommonClientConfigs.CLIENT_ID_CONFIG,
-        { "$ID_PREFIX.$keyPrefix}client.${uuid()}" },
+        { "$ID_PREFIX.$keyPrefix}client.${KafkaService.uuid()}" },
     )
   }
 

@@ -13,6 +13,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.reactive.socket.CloseStatus
 import org.springframework.web.reactive.socket.WebSocketHandler
 import org.springframework.web.reactive.socket.WebSocketSession
+import org.springframework.web.util.UriComponents
 import org.springframework.web.util.UriComponentsBuilder
 import reactor.core.publisher.Mono
 import reactor.kafka.sender.SenderRecord
@@ -64,6 +65,17 @@ class KafkaWebSocketHandler(
     if (topic.isEmpty()) {
       return session.close(CloseStatus.POLICY_VIOLATION.withReason("topic is required"))
     }
+    return kafkaService
+        .describeTopic(topic)
+        .switchIfEmpty(
+            session
+                .close(CloseStatus.POLICY_VIOLATION.withReason("topic does not exist"))
+                .then(Mono.empty())
+        )
+        .flatMap { handle(session, uri, topic) }
+  }
+
+  private fun handle(session: WebSocketSession, uri: UriComponents, topic: String): Mono<Void> {
 
     fun queryParamBoolean(name: String): Boolean? {
       return uri.queryParams.getFirst(name)?.let {
@@ -97,7 +109,6 @@ class KafkaWebSocketHandler(
         } else {
           Mono.empty()
         }
-
     val produceFlow =
         if (producerEnabled) {
           val producer = kafkaService.producer(uri.queryParams.asSingleValueMap())

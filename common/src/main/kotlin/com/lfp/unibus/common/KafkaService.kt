@@ -1,16 +1,20 @@
 package com.lfp.unibus.common
 
 import com.lfp.unibus.common.Extensions.flatten
+import java.util.*
+import org.apache.kafka.clients.admin.Admin
+import org.apache.kafka.clients.admin.TopicDescription
+import org.apache.kafka.common.errors.UnknownTopicOrPartitionException
 import org.apache.kafka.common.utils.Bytes
 import org.springframework.boot.context.properties.ConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration
 import org.springframework.stereotype.Component
+import reactor.core.publisher.Mono
 import reactor.kafka.receiver.KafkaReceiver
 import reactor.kafka.receiver.ReceiverOptions
 import reactor.kafka.sender.KafkaSender
 import reactor.kafka.sender.SenderOptions
-import java.util.*
 
 private const val CLIENT_ID_PREFIX = "unibus"
 
@@ -25,6 +29,22 @@ private const val CLIENT_ID_PREFIX = "unibus"
 class KafkaService(kafkaProperties: KafkaProperties) {
 
   private val requiredProperties = Collections.unmodifiableMap(kafkaProperties.flatten())
+  private val adminClientLazy = lazy { Admin.create(requiredProperties)!! }
+
+  fun admin(): Admin {
+    return adminClientLazy.value
+  }
+
+  fun describeTopic(topic: String): Mono<TopicDescription> {
+    val topicDescription: Mono<TopicDescription> =
+        Mono.fromCompletionStage {
+              admin().describeTopics(listOf(topic)).allTopicNames().toCompletionStage()
+            }
+            .mapNotNull { it[topic] }
+    return topicDescription.onErrorResume(UnknownTopicOrPartitionException::class.java) {
+      Mono.empty()
+    }
+  }
 
   /**
    * Creates ProducerConfig with optional property overrides.
