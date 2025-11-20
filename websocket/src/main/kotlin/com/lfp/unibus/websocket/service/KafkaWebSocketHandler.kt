@@ -1,11 +1,11 @@
-package com.lfp.unibus.websocket
+package com.lfp.unibus.websocket.service
 
 import com.fasterxml.jackson.databind.MapperFeature
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ObjectNode
 import com.lfp.unibus.common.KafkaService
-import com.lfp.unibus.common.data.ConsumerData
 import com.lfp.unibus.common.data.ProducerData
-import org.apache.kafka.clients.consumer.ConsumerRecord
+import com.lfp.unibus.websocket.data.PayloadType
 import org.apache.kafka.common.utils.Bytes
 import org.slf4j.LoggerFactory
 import org.springframework.core.convert.ConversionService
@@ -29,9 +29,7 @@ import reactor.kafka.sender.SenderRecord
  * @param conversionService Spring conversion service
  * @param objectMapper Jackson ObjectMapper for JSON serialization
  * @param kafkaService Kafka service for creating producers/consumers
- * @param kafkaService Kafka configuration from environment properties
  */
-
 @Component
 class KafkaWebSocketHandler(
     var conversionService: ConversionService,
@@ -43,13 +41,14 @@ class KafkaWebSocketHandler(
     objectMapper = objectMapper.copy().apply { enable(MapperFeature.ACCEPT_CASE_INSENSITIVE_ENUMS) }
   }
 
-    private val log= LoggerFactory.getLogger(this::class.java)
+  private val log = LoggerFactory.getLogger(this::class.java)
 
   /**
    * Handles WebSocket session by setting up Kafka producer/consumer flows.
    *
    * Topic name extracted from URL path segments. Query parameters:
    * - producer: Enable producer (default: true)
+   * - producer.result: Enable producer result messages (default: true)
    * - consumer: Enable consumer (default: true)
    * - producer.{kafka-property}: Producer-specific Kafka config
    * - consumer.{kafka-property}: Consumer-specific Kafka config
@@ -73,6 +72,7 @@ class KafkaWebSocketHandler(
     }
 
     val producerEnabled = queryParamBoolean("producer") ?: true
+    val producerResultEnabled = queryParamBoolean("producer.result") ?: true
     val consumerEnabled = queryParamBoolean("consumer") ?: true
     if (!producerEnabled && !consumerEnabled) {
       return session.close(
@@ -82,18 +82,18 @@ class KafkaWebSocketHandler(
     val consumeFlow =
         if (consumerEnabled) {
           val consumer = kafkaService.consumer(topic, uri.queryParams.asSingleValueMap())
-          val kafkaFlux =
+          val consumerPayloads =
               consumer
                   .receive()
                   .takeUntilOther(session.closeStatus().then())
-                  .map { record -> toConsumerPayload(record) }
+                  .map { record -> toConsumerPayload(PayloadType.RECORD, record) }
                   .map { session.textMessage(it) }
                   .onErrorResume { e ->
                     log.error("consumer error", e)
                     Mono.error(e)
                   }
 
-          session.send(kafkaFlux)
+          session.send(consumerPayloads)
         } else {
           Mono.empty()
         }
@@ -101,17 +101,21 @@ class KafkaWebSocketHandler(
     val produceFlow =
         if (producerEnabled) {
           val producer = kafkaService.producer(uri.queryParams.asSingleValueMap())
-          session
-              .receive()
-              .takeUntilOther(session.closeStatus().then())
-              .flatMapIterable { msg -> toSenderRecords(topic, msg.payloadAsText) }
-              .flatMap { record -> producer.send(Mono.just(record)) }
-              .onErrorResume { e ->
-                log.error("producer error", e)
-                Mono.error(e)
-              }
-              .then()
-              .doFinally { _ -> producer.close() }
+          val resultPayloads =
+              session
+                  .receive()
+                  .takeUntilOther(session.closeStatus().then())
+                  .flatMapIterable { msg -> toSenderRecords(topic, msg.payloadAsText) }
+                  .flatMap { record -> producer.send(Mono.just(record)) }
+                  .filter { producerResultEnabled }
+                  .mapNotNull { result -> toConsumerPayload(PayloadType.RESULT, result) }
+                  .map { session.textMessage(it) }
+                  .onErrorResume { e ->
+                    log.error("producer error", e)
+                    Mono.error(e)
+                  }
+
+          session.send(resultPayloads).doFinally { producer.close() }
         } else {
           session
               .receive()
@@ -141,13 +145,15 @@ class KafkaWebSocketHandler(
   }
 
   /**
-   * Converts Kafka ConsumerRecord to JSON string payload.
+   * Converts Kafka record or result to JSON string payload.
    *
-   * @param record Kafka ConsumerRecord to convert
-   * @return JSON string representation
+   * @param payloadType Type of payload (RECORD or RESULT)
+   * @param value Kafka ConsumerRecord or SenderResult to convert
+   * @return JSON string representation with type field
    */
-  private fun toConsumerPayload(record: ConsumerRecord<Bytes, Bytes>): String {
-    val producerData = ConsumerData(record)
-    return objectMapper.writeValueAsString(producerData)
+  private fun toConsumerPayload(payloadType: PayloadType, value: Any): String {
+    val node = objectMapper.valueToTree<ObjectNode>(value)
+    node.put("type", payloadType.name)
+    return objectMapper.writeValueAsString(node)
   }
 }

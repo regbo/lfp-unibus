@@ -12,8 +12,8 @@ import org.apache.kafka.common.utils.Bytes
  */
 class BytesJsonSerializer : JsonSerializer<Bytes>() {
 
-  override fun serialize(value: Bytes?, gen: JsonGenerator, serializers: SerializerProvider?) {
-    val valueBarr = value?.get()
-    ByteArrayJsonSerializer.serialize(valueBarr, gen)
+  override fun serialize(value: Bytes, gen: JsonGenerator, serializers: SerializerProvider) {
+    val valueBarr = value.get()
+    serializers.defaultSerializeValue(valueBarr, gen)
   }
 }

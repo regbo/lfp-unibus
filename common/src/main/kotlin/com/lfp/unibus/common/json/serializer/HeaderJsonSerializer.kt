@@ -11,19 +11,17 @@ import org.apache.kafka.common.header.Header
  * Serializes as object with "key" and "value" fields.
  */
 class HeaderJsonSerializer : JsonSerializer<Header>() {
-  override fun serialize(value: Header?, gen: JsonGenerator, serializers: SerializerProvider?) {
-    if (value != null) {
-      gen.writeStartObject()
-      gen.writeFieldName("key")
-      val key = value.key()
-      if (key == null) {
-        gen.writeNull()
-      } else {
-        gen.writeString(key)
-      }
-      gen.writeFieldName("value")
-      ByteArrayJsonSerializer.serialize(value.value(), gen)
-      gen.writeEndObject()
+  override fun serialize(value: Header, gen: JsonGenerator, serializers: SerializerProvider) {
+    gen.writeStartObject()
+    gen.writeFieldName("key")
+    val key = value.key()
+    if (key == null) {
+      gen.writeNull()
+    } else {
+      gen.writeString(key)
     }
+    gen.writeFieldName("value")
+    serializers.defaultSerializeValue(value.value(), gen)
+    gen.writeEndObject()
   }
 }

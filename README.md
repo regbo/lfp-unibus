@@ -68,6 +68,7 @@ ws://host:port/{topic-segments}?producer={true|false}&consumer={true|false}&{kaf
   
 - **Query Parameters**:
   - `producer`: Enable producer functionality (default: `true`)
+  - `producer.result`: Enable producer result messages (default: `true`). When enabled, sends confirmation messages back through the WebSocket after messages are successfully produced to Kafka.
   - `consumer`: Enable consumer functionality (default: `true`)
   - `producer.{kafka-property}`: Producer-specific Kafka configuration
   - `consumer.{kafka-property}`: Consumer-specific Kafka configuration
@@ -92,6 +93,11 @@ ws://localhost:8888/my-topic?consumer.group.id=my-custom-group
 **Custom producer client ID:**
 ```
 ws://localhost:8888/my-topic?producer.client.id=my-producer
+```
+
+**Disable producer result messages:**
+```
+ws://localhost:8888/my-topic?producer.result=false
 ```
 
 ## Message Formats
@@ -188,10 +194,17 @@ This will produce three Kafka messages, each with the corresponding value. Each 
 
 ### Consuming Messages
 
-Received messages are JSON objects with the following structure:
+Received messages are JSON objects with a `type` field indicating the message type:
+- `RECORD`: Kafka consumer record (when consuming from topics)
+- `RESULT`: Producer result confirmation (when producer.result is enabled)
+
+#### Consumer Records
+
+Consumer records have the following structure:
 
 ```json
 {
+  "type": "RECORD",
   "partition": 0,
   "offset": 12345,
   "timestamp": 1234567890000,
@@ -225,6 +238,32 @@ Received messages are JSON objects with the following structure:
 - `deliveryCount`: Optional delivery count
 
 **Note**: The `topic` field is not included in the JSON (it's available from the WebSocket URL path).
+
+#### Producer Results
+
+When `producer.result=true` (the default), producer result messages are sent back through the WebSocket after messages are successfully produced. These messages have the following structure:
+
+```json
+{
+  "type": "RESULT",
+  "recordMetadata": {
+    "topic": "my-topic",
+    "partition": 0,
+    "offset": 12345,
+    "timestamp": 1234567890000,
+    "serializedKeySize": 10,
+    "serializedValueSize": 100
+  },
+  "correlationMetadata": null
+}
+```
+
+**Fields:**
+- `type`: Always `"RESULT"` for producer result messages
+- `recordMetadata`: Kafka RecordMetadata containing topic, partition, offset, timestamp, and size information
+- `correlationMetadata`: Optional correlation metadata (typically null)
+
+To disable producer result messages, set `producer.result=false` in the WebSocket URL query parameters.
 
 ## Architecture
 

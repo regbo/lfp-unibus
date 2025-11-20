@@ -2,7 +2,7 @@ package com.lfp.unibus
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.lfp.unibus.websocket.Config
-import com.lfp.unibus.websocket.KafkaWebSocketHandler
+import com.lfp.unibus.websocket.service.KafkaWebSocketHandler
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.springframework.core.convert.support.DefaultConversionService

@@ -20,6 +20,13 @@ import reactor.kafka.sender.SenderRecord
  *
  * Extends ProducerRecord with JSON deserialization support. Can be created from JSON or used
  * directly as a ProducerRecord.
+ *
+ * @param topic Kafka topic name
+ * @param partition Optional partition number (null for automatic assignment)
+ * @param timestamp Optional timestamp in milliseconds (null for current time)
+ * @param key Optional message key (deserialized from various formats)
+ * @param value Optional message value (deserialized from various formats)
+ * @param headers Optional collection of message headers
  */
 class ProducerData
 @JsonCreator(mode = JsonCreator.Mode.PROPERTIES)
