@@ -11,7 +11,6 @@ import com.lfp.unibus.common.data.DataUrl
 import java.nio.ByteBuffer
 import java.nio.charset.CodingErrorAction
 import java.nio.charset.StandardCharsets
-import org.springframework.http.MediaType
 
 /**
  * Jackson serializer for ByteArray.
@@ -34,7 +33,7 @@ class ByteArrayJsonSerializer : JsonSerializer<ByteArray>() {
         runCatching { DECODER.decode(ByteBuffer.wrap(value)) }
             .map { null }
             .getOrElse {
-              val dataUrl = DataUrl(mediaType = MediaType.APPLICATION_OCTET_STREAM, data = value)
+              val dataUrl = DataUrl(null, data = value)
               TextNode.valueOf(dataUrl.toString())
             }
     if (binaryNode != null) {

@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.lfp.unibus.common.data.DataUrl
 import java.io.ByteArrayOutputStream
+import java.nio.ByteBuffer
 
 /**
  * Jackson deserializer for ByteArray.
@@ -55,8 +56,8 @@ class ByteArrayJsonDeserializer : JsonDeserializer<ByteArray>() {
     /**
      * Deserializes ByteArray from JSON node.
      *
-     * If node is textual, delegates to string deserializer. Otherwise, serializes the node
-     * to JSON bytes.
+     * If node is textual, delegates to string deserializer. Otherwise, serializes the node to JSON
+     * bytes.
      *
      * @param codec Object codec for JSON operations
      * @param node JSON node to deserialize
@@ -86,8 +87,8 @@ class ByteArrayJsonDeserializer : JsonDeserializer<ByteArray>() {
     /**
      * Deserializes ByteArray from string.
      *
-     * If the string is a valid data URL with base64 encoding, extracts the binary data.
-     * Otherwise, encodes the string as UTF-8 bytes.
+     * If the string is a valid data URL with base64 encoding, extracts the binary data. Otherwise,
+     * encodes the string as UTF-8 bytes.
      *
      * @param text String to deserialize (may be a data URL or plain text)
      * @return Deserialized ByteArray or null if input is null or empty
@@ -95,8 +96,17 @@ class ByteArrayJsonDeserializer : JsonDeserializer<ByteArray>() {
     fun deserialize(text: String?): ByteArray? {
       if (text != null && !text.isEmpty()) {
         val dataUrl = DataUrl.parse(text)
-        if (dataUrl != null && dataUrl.base64) {
-          return dataUrl.data
+        if (dataUrl != null) {
+          if (dataUrl.base64) {
+            return dataUrl.data
+          } else if (dataUrl.charset != null) {
+            val decodedText =
+                runCatching { dataUrl.charset.decode(ByteBuffer.wrap(dataUrl.data)).toString() }
+                    .getOrNull()
+            if (decodedText != null) {
+              return decodedText.encodeToByteArray()
+            }
+          }
         }
         return text.encodeToByteArray()
       }

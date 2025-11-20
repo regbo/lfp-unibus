@@ -57,12 +57,12 @@ class ClientPropertiesTest {
     val props =
         ClientProperties.PRODUCER.get(
             mapOf(
-                ProducerConfig.LINGER_MS_CONFIG to "10",
-                "producer.${ProducerConfig.LINGER_MS_CONFIG}" to "50",
+                ProducerConfig.ACKS_CONFIG to "1",
+                "producer.${ProducerConfig.ACKS_CONFIG}" to "all",
             )
         )
 
-    assertEquals("50", props[ProducerConfig.LINGER_MS_CONFIG])
+    assertEquals("all", props[ProducerConfig.ACKS_CONFIG])
   }
 
   @Test
@@ -83,11 +83,11 @@ class ClientPropertiesTest {
   fun `later property maps override earlier ones`() {
     val props =
         ClientProperties.PRODUCER.get(
-            mapOf(ProducerConfig.LINGER_MS_CONFIG to "10"),
-            mapOf(ProducerConfig.LINGER_MS_CONFIG to "20"),
+            mapOf(ProducerConfig.ACKS_CONFIG to "1"),
+            mapOf(ProducerConfig.ACKS_CONFIG to "all"),
         )
 
-    assertEquals("20", props[ProducerConfig.LINGER_MS_CONFIG])
+    assertEquals("all", props[ProducerConfig.ACKS_CONFIG])
   }
 
   @Test
