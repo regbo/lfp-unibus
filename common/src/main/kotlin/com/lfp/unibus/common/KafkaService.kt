@@ -1,7 +1,6 @@
 package com.lfp.unibus.common
 
 import com.lfp.unibus.common.Extensions.flatten
-import java.util.*
 import org.apache.kafka.clients.admin.Admin
 import org.apache.kafka.clients.admin.TopicDescription
 import org.apache.kafka.common.errors.UnknownTopicOrPartitionException
@@ -15,6 +14,7 @@ import reactor.kafka.receiver.KafkaReceiver
 import reactor.kafka.receiver.ReceiverOptions
 import reactor.kafka.sender.KafkaSender
 import reactor.kafka.sender.SenderOptions
+import java.util.*
 
 private const val CLIENT_ID_PREFIX = "unibus"
 
@@ -23,7 +23,8 @@ private const val CLIENT_ID_PREFIX = "unibus"
  *
  * Creates ProducerConfig and ConsumerConfig from environment properties, exposes Reactor friendly
  * producers and consumers, and provides access to an Admin client for metadata lookups such as
- * topic descriptions. Properties prefixed with "kafka." are automatically loaded from configuration.
+ * topic descriptions. Properties prefixed with "kafka." are automatically loaded from
+ * configuration.
  */
 @EnableConfigurationProperties
 @Configuration
@@ -93,8 +94,8 @@ class KafkaService(kafkaProperties: KafkaProperties) {
   /**
    * Creates ConsumerConfig with optional property overrides.
    *
-   * Later maps override earlier ones, and keys may be prefixed with `consumer.` to scope them
-   * to consumer clients.
+   * Later maps override earlier ones, and keys may be prefixed with `consumer.` to scope them to
+   * consumer clients.
    *
    * @param configs Optional property maps; null entries are ignored
    * @return Configured ConsumerConfig instance

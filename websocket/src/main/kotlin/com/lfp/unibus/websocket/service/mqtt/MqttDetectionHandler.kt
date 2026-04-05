@@ -6,8 +6,8 @@ import io.netty.handler.codec.ByteToMessageDecoder
 import io.netty.handler.codec.mqtt.MqttDecoder
 import io.netty.handler.codec.mqtt.MqttEncoder
 import io.netty.handler.timeout.IdleStateHandler
-import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
+import org.slf4j.LoggerFactory
 
 /**
  * Netty channel handler that detects MQTT protocol magic bytes.
@@ -33,15 +33,16 @@ import java.util.concurrent.TimeUnit
  * detected before passing the data to the next handler in the pipeline. It is added early in the
  * pipeline to inspect raw bytes before HTTP processing.
  */
-class MqttDetectionHandler(val kafkaMqttHandler: KafkaMqttHandler) : ByteToMessageDecoder() {
+class MqttDetectionHandler(kafkaMqttHandler: KafkaMqttHandler) : ByteToMessageDecoder() {
 
-  private val logger = LoggerFactory.getLogger(MqttDetectionHandler::class.java)
-  private val handlers =
+  private val log = LoggerFactory.getLogger(this::class.java)
+  private val mqttHandlers =
       mapOf(
           "mqttDecoder" to MqttDecoder(),
           "mqttEncoder" to MqttEncoder.INSTANCE,
           "idleStateHandler" to IdleStateHandler(45, 0, 0, TimeUnit.SECONDS),
-          "kafkaMqttHandler" to kafkaMqttHandler,
+          // "kafkaMqttHandler" to kafkaMqttHandler,
+          "mqttHeartBeatBrokerHandler" to MqttHeartBeatBrokerHandler.INSTANCE,
       )
 
   /**
@@ -73,23 +74,26 @@ class MqttDetectionHandler(val kafkaMqttHandler: KafkaMqttHandler) : ByteToMessa
               return@run true
             }
     val pipeline = ctx.pipeline()
-    val handlerNames = pipeline.names()
     if (isMqtt) {
-      for (handlerName in handlerNames.reversed()) {
-        val handlerCtx = pipeline.context(handlerName)
-        if (handlerCtx == null) {
-          continue
-        } else if (handlerCtx.handler() == this) {
-          break
-        } else {
-          pipeline.remove(handlerName)
-        }
+      val handlerCtx = pipeline.context(this)
+      pipeline
+          .filter {
+            val remove = it.value != this && (HTTP_HANDLER_REGEX.matches(it.key) || true)
+            if (remove) {
+              log.info("removing:{}", it)
+            }
+            remove
+          }
+          .forEach { pipeline.remove(it.value) }
+      mqttHandlers.toList().reversed().forEach { (name, handler) ->
+        pipeline.addAfter(handlerCtx.name(), name, handler)
       }
-      val handlerName = pipeline.context(this).name()
-      handlers.entries.reversed().forEach { (k, v) -> pipeline.addAfter(handlerName, k, v) }
-    } else {
-      // leave the pipeline empty or add something else
+
     }
     pipeline.remove(this)
+  }
+
+  companion object {
+    @JvmStatic private val HTTP_HANDLER_REGEX = Regex("""^(?:http[A-Za-z].*|.*\.http[A-Za-z].*)$""")
   }
 }

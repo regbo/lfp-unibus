@@ -1,4 +1,4 @@
-package com.lfp.unibus.websocket.data
+package com.lfp.unibus.common.data
 
 /**
  * Type of payload sent through WebSocket.

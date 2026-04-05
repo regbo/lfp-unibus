@@ -1,5 +1,9 @@
 package com.lfp.unibus.common
 
+import org.springframework.web.util.UriComponents
+import org.springframework.web.util.UriComponentsBuilder
+import java.net.URI
+
 /** Utility functions for object mapping and map operations. */
 object Extensions {
   /**
@@ -32,5 +36,18 @@ object Extensions {
     return result
   }
 
+  fun URI?.components(): UriComponents? {
+    return this?.let { UriComponentsBuilder.fromUri(this).build() }
+  }
 
+  fun URI?.queryProperties(): Map<String, String?> {
+    return this.components()?.queryParams?.asSingleValueMap() ?: emptyMap()
+  }
+
+  fun URI?.topic(): String? {
+    val pathSegments = this.components()?.pathSegments ?: emptyList()
+    if (pathSegments.isEmpty() || (pathSegments.size == 1 && pathSegments.first().isEmpty()))
+        return null
+    return pathSegments.joinToString("_")
+  }
 }

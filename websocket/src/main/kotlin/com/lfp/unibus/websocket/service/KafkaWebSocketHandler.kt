@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.lfp.unibus.common.KafkaService
 import com.lfp.unibus.common.data.ProducerData
-import com.lfp.unibus.websocket.data.PayloadType
+import com.lfp.unibus.common.data.PayloadType
 import org.apache.kafka.common.utils.Bytes
 import org.slf4j.LoggerFactory
 import org.springframework.core.convert.ConversionService

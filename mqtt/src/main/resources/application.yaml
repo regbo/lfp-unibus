@@ -1,0 +1,15 @@
+server:
+  port: 8888
+mqtt:
+  port: 1880
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.reactive.handler.SimpleUrlHandlerMapping: TRACE
+    com.lfp.unibus: INFO
+kafka:
+  bootstrap:
+    servers: kafka.lfpconnect.io:443
+  security:
+    protocol: SSL
+
